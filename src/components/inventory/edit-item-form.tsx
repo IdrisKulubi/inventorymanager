@@ -1,38 +1,52 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { addInventoryItem } from "@/lib/actions/inventory";
-import { z } from "zod";
+import { updateInventoryItem } from "@/lib/actions/inventory";
 import { formSchema } from "@/lib/validators";
 import { INVENTORY_CATEGORIES, INVENTORY_UNITS } from "@/lib/constants";
+import type { InventoryItem } from "@/db/schema";
+import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { Plus } from "lucide-react";
 
-export function AddInventoryForm() {
+export function EditInventoryForm({ 
+  item,
+  onSuccess
+}: { 
+  item: InventoryItem;
+  onSuccess: () => void;
+}) {
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      category: INVENTORY_CATEGORIES[0],
-      itemName: "",
-      brand: "",
-      quantity: 1,
-      unit: INVENTORY_UNITS[0],
-      purchaseDate: new Date().toISOString().split('T')[0],
-      shelfLifeDays: 7,
-      supplierContact: ""
+      ...item,
+      category: item.category as typeof INVENTORY_CATEGORIES[number],
+      unit: item.unit as typeof INVENTORY_UNITS[number],
+      purchaseDate: new Date(item.purchaseDate).toISOString().split('T')[0],
     }
   });
 
+  useEffect(() => {
+    form.reset({
+      ...item,
+      category: item.category as typeof INVENTORY_CATEGORIES[number],
+      unit: item.unit as typeof INVENTORY_UNITS[number],
+      purchaseDate: new Date(item.purchaseDate).toISOString().split('T')[0],
+    });
+  }, [item, form]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const result = await addInventoryItem({
+      const result = await updateInventoryItem(item.id, {
         ...values,
+        brand: values.brand || undefined,
+        supplierContact: values.supplierContact || undefined,
         purchaseDate: new Date(values.purchaseDate).toISOString(),
         expiryDate: new Date(new Date(values.purchaseDate).setDate(
           new Date(values.purchaseDate).getDate() + values.shelfLifeDays
@@ -40,10 +54,10 @@ export function AddInventoryForm() {
       });
 
       if (result.success) {
-        toast.success("Item added successfully");
-        form.reset();
+        toast.success("Item updated successfully");
+        onSuccess();
       } else {
-        toast.error("Failed to add item", {
+        toast.error("Failed to update item", {
           description: result.error
         });
       }
@@ -99,30 +113,30 @@ export function AddInventoryForm() {
             name="quantity"
             render={({ field }) => (
               <FormItem>
-      <FormLabel>Quantity</FormLabel>
-      <FormControl>
-        <Input
-          type="number"
-          min="0"
-          step="1"
-          {...field}
-          onChange={(e) => {
-            const value = e.target.value;
-            // Convert to positive integer or 0
-            const quantity = Math.max(0, Math.floor(Number(value)) || 0);
-            field.onChange(quantity);
-          }}
-          onBlur={(e) => {
-            const value = e.target.value;
-            // Ensure empty input becomes 0
-            if (!value) {
-              field.onChange(0);
-            }
-          }}
-        />
-      </FormControl>
-      <FormMessage />
-    </FormItem>
+                <FormLabel>Quantity</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    {...field}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Convert to positive integer or 0
+                      const quantity = Math.max(0, Math.floor(Number(value)) || 0);
+                      field.onChange(quantity);
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value;
+                      // Ensure empty input becomes 0
+                      if (!value) {
+                        field.onChange(0);
+                      }
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
           />
 
@@ -188,7 +202,7 @@ export function AddInventoryForm() {
               <FormItem>
                 <FormLabel>Brand</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter brand name" {...field} />
+                  <Input placeholder="Enter brand name" {...field} value={field.value || ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -202,7 +216,7 @@ export function AddInventoryForm() {
               <FormItem>
                 <FormLabel>Supplier Contact</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter supplier contact" {...field} />
+                  <Input placeholder="Enter supplier contact" {...field} value={field.value || ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -210,14 +224,17 @@ export function AddInventoryForm() {
           />
         </div>
 
-        <Button type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="mr-2 h-4 w-4" />
-          )}
-          Add Item
-        </Button>
+        <div className="flex gap-4">
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            Update Item
+          </Button>
+          <Button variant="outline" type="button" onClick={onSuccess}>
+            Cancel
+          </Button>
+        </div>
       </form>
     </Form>
   );

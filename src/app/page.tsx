@@ -1,50 +1,96 @@
-import { getInventoryItems } from "@/lib/actions/inventory";
+import { getInventoryItems, getInventoryStats } from "@/lib/actions/inventory";
+import { InventoryTable } from "@/components/inventory/inventory-table";
+import { InventoryControls } from "@/components/inventory/inventory-controls";
+import { DashboardCard } from "@/components/inventory/dashboard-card";
+import { ExpiryChart } from "@/components/inventory/expiry-chart";
 import { AddInventoryForm } from "@/components/inventory/add-item-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { InventoryItem } from "../../db/schema";
+import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
-export default async function Home() {
-  const inventory = await getInventoryItems();
+interface DashboardPageProps {
+  searchParams?: Promise<{
+    category?: string;
+    q?: string;
+  }>;
+}
+
+export default async function DashboardPage({
+  searchParams
+}: DashboardPageProps) {
+  // Properly await the searchParams promise
+  const params = await searchParams;
+  
+  const categoryFilter = params?.category || "all";
+  const searchQuery = params?.q || "";
+  
+  const [inventory, stats] = await Promise.all([
+    getInventoryItems(categoryFilter, searchQuery),
+    getInventoryStats()
+  ]);
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-6 space-y-6">
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <DashboardCard 
+          title="Total Items" 
+          value={stats.totalItems}
+          icon="📦"
+        />
+        <DashboardCard 
+          title="Expiring Soon" 
+          value={stats.expiringSoon}
+          variant="destructive"
+          icon="⏳"
+        />
+        <DashboardCard 
+          title="Low Stock" 
+          value={stats.lowStock}
+          variant="warning"
+          icon="📉"
+        />
+      </div>
+
+      {/* Chart Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Add New Inventory Item</CardTitle>
+          <CardTitle>Expiry Overview</CardTitle>
         </CardHeader>
-        <CardContent>
-          <AddInventoryForm />
+        <CardContent className="h-80">
+          <ExpiryChart data={stats.expiryDistribution} />
         </CardContent>
       </Card>
 
+      {/* Inventory Management Section */}
       <Card>
-        <CardHeader>
-          <CardTitle>Current Inventory</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle>Inventory Management</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {stats.totalItems} items across {stats.totalCategories} categories
+            </p>
+          </div>
+          <Dialog>
+            <DialogTitle>Add Item</DialogTitle>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Item
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <AddInventoryForm />
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Expiry Date</TableHead>
-                <TableHead>Supplier</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {inventory.map((item: InventoryItem) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.itemName}</TableCell>
-                  <TableCell>{item.category}</TableCell>
-                  <TableCell>{item.quantity} {item.unit}</TableCell>
-                  <TableCell>{new Date(item.expiryDate).toLocaleDateString()}</TableCell>
-                  <TableCell>{item.supplierContact}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <InventoryControls 
+            items={inventory} 
+            initialSearch={searchQuery}
+          />
+          <InventoryTable items={inventory} />
         </CardContent>
       </Card>
     </div>
