@@ -1,6 +1,7 @@
 export const INVENTORY_CATEGORIES = [
     'Fruits & Vegetables',
     'Dairy',
+    'Fresh Cream',
     'Bakery',
     'Meat',
     'Beverages',
@@ -14,6 +15,7 @@ export const INVENTORY_CATEGORIES = [
     'Coffee',
     'Wine',
     'Beer',
+    'Milk',
     'Spirits',
     'Raw Materials',
     'Syrup & Sauce'
