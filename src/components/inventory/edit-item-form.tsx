@@ -29,6 +29,7 @@ export function EditInventoryForm({
       category: item.category as typeof INVENTORY_CATEGORIES[number],
       unit: item.unit as typeof INVENTORY_UNITS[number],
       purchaseDate: new Date(item.purchaseDate).toISOString().split('T')[0],
+      supplierContact: item.supplierContact ?? "",
     }
   });
 
@@ -38,6 +39,7 @@ export function EditInventoryForm({
       category: item.category as typeof INVENTORY_CATEGORIES[number],
       unit: item.unit as typeof INVENTORY_UNITS[number],
       purchaseDate: new Date(item.purchaseDate).toISOString().split('T')[0],
+      supplierContact: item.supplierContact ?? "",
     });
   }, [item, form]);
 
