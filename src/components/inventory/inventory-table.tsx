@@ -9,6 +9,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/
 import { EditInventoryForm } from "./edit-item-form";
 
 import { DeleteItemAlert } from "@/components/inventory/delete-item-alert";
+import { SupplierDetails } from "./supplier-details";
 
 function InventoryTableRow({ item }: { item: InventoryItem }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -29,17 +30,23 @@ function InventoryTableRow({ item }: { item: InventoryItem }) {
 
   return (
     <TableRow key={item.id} className={status.variant === "destructive" ? "bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-900" : ""}>
-      <TableCell>{item.itemName}</TableCell>
+      <TableCell>
+        <SupplierDetails
+          name={item.supplierName}
+          contact={item.supplierContact || undefined}
+        />
+      </TableCell>
       <TableCell>{item.category}</TableCell>
+      <TableCell>{item.itemName}</TableCell>
       <TableCell className={item.quantity < 10 ? "text-red-600 font-bold" : ""}>
         {item.quantity} {item.unit}
       </TableCell>
+      <TableCell>Ksh.{item.cost.toLocaleString()}</TableCell>
       <TableCell>
         <Badge variant={status.variant as BadgeProps["variant"]}>
           {status.label} ({new Date(item.expiryDate).toLocaleDateString('en-US')})
         </Badge>
       </TableCell>
-      <TableCell>{item.supplierContact}</TableCell>
       <TableCell>
         <Dialog open={isEditing} onOpenChange={setIsEditing}>
           <DialogTrigger asChild>
@@ -68,11 +75,12 @@ export function InventoryTable({ items }: { items: InventoryItem[] }) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Item</TableHead>
-          <TableHead>Category</TableHead>
-          <TableHead>Quantity</TableHead>
-          <TableHead>Expiry Status</TableHead>
           <TableHead>Supplier</TableHead>
+          <TableHead>Category</TableHead>
+          <TableHead>Item</TableHead>
+          <TableHead>Quantity</TableHead>
+          <TableHead>Cost</TableHead>
+          <TableHead>Expiry Status</TableHead>
           <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>

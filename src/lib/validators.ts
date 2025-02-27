@@ -20,9 +20,10 @@ export const formSchema = z.object({
         .min(1, "Minimum 1 day")
         .max(365, "Maximum 1 year"),
     supplierContact: z.string()
-        .regex(/^(?:\+?[0-9]{10,15}|[^@]+@[^.]+\..+|[a-zA-Z][\sa-zA-Z-]{1,49})$/, 
-            "Must be a valid phone number, email, or supplier name")
-        .nullable()
+        .regex(/^(\+?[0-9]{10,15}|[^@]+@[^\.]+\..+)?$/, "Invalid contact format")
+        .optional(),
+    cost: z.number().min(0, "Cost must be positive"),
+    supplierName: z.string().min(1, "Supplier name is required"),
 });
 
 export type InventoryFormValues = z.infer<typeof formSchema>;

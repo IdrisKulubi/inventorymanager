@@ -197,12 +197,46 @@ export function AddInventoryForm() {
 
           <FormField
             control={form.control}
+            name="cost"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cost</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="supplierName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Supplier Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter supplier name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="supplierContact"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Supplier Contact</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter supplier contact" {...field} />
+                  <Input placeholder="Email or phone number" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

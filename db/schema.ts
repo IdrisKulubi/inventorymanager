@@ -11,6 +11,8 @@ export const inventoryItems = pgTable("inventory_items", {
   shelfLifeDays: integer("shelf_life_days").notNull(),
   expiryDate: date("expiry_date").notNull(),
   supplierContact: text("supplier_contact"),
+  cost: integer("cost").notNull(),
+  supplierName: text("supplier_name").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

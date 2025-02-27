@@ -58,18 +58,20 @@ export async function getInventoryItems(category?: string, search?: string) {
 
 export async function exportToCSV(items: InventoryItem[]) {
   const csvContent = [
-    ["ID", "Item Name", "Category", "Quantity", "Unit", "Expiry Date", "Supplier"],
+    ["ID", "Item", "Category", "Quantity", "Unit", "Cost", "Expiry", "Supplier", "Contact"],
     ...items.map(item => [
       item.id,
       item.itemName,
       item.category,
       item.quantity,
       item.unit,
+      `$${item.cost.toLocaleString()}`,
       new Date(item.expiryDate).toLocaleDateString(),
-      item.supplierContact
+      item.supplierName,
+      item.supplierContact || "N/A"
     ])
   ].map(e => e.join(",")).join("\n");
-
+  
   return csvContent;
 }
 
