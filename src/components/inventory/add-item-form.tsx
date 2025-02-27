@@ -25,7 +25,9 @@ export function AddInventoryForm() {
       unit: INVENTORY_UNITS[0],
       purchaseDate: new Date().toISOString().split('T')[0],
       shelfLifeDays: 7,
-      supplierContact: ""
+      supplierContact: "",
+      cost: 0,
+      supplierName: ""
     }
   });
 
