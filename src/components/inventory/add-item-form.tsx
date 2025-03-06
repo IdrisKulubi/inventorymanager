@@ -9,16 +9,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { addInventoryItem } from "@/lib/actions/inventory";
 import { z } from "zod";
 import { formSchema } from "@/lib/validators";
-import { INVENTORY_CATEGORIES, INVENTORY_UNITS } from "@/lib/constants";
+import { 
+  INVENTORY_CATEGORIES, 
+  INVENTORY_SUBCATEGORIES, 
+  INVENTORY_UNITS,
+  CATEGORY_DISPLAY_NAMES,
+  SUBCATEGORY_DISPLAY_NAMES
+} from "@/lib/constants";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export function AddInventoryForm() {
-  const form = useForm({
+interface AddInventoryFormProps {
+  onItemAdded?: () => void;
+}
+
+export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
+  const [selectedCategory, setSelectedCategory] = useState<string>(INVENTORY_CATEGORIES[0]);
+  const [availableSubcategories, setAvailableSubcategories] = useState<readonly string[]>(
+    INVENTORY_SUBCATEGORIES[INVENTORY_CATEGORIES[0]]
+  );
+  const [isFixedAsset, setIsFixedAsset] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       category: INVENTORY_CATEGORIES[0],
+      subcategory: INVENTORY_SUBCATEGORIES[INVENTORY_CATEGORIES[0]][0],
       itemName: "",
       brand: "",
       quantity: 1,
@@ -27,23 +46,60 @@ export function AddInventoryForm() {
       shelfLifeDays: 7,
       supplierContact: "",
       cost: 0,
-      supplierName: ""
+      supplierName: "",
+      isFixedAsset: false,
+      assetLocation: ""
     }
   });
 
+  // Update subcategories when category changes
+  useEffect(() => {
+    if (selectedCategory) {
+      setAvailableSubcategories(INVENTORY_SUBCATEGORIES[selectedCategory]);
+      form.setValue('subcategory', INVENTORY_SUBCATEGORIES[selectedCategory][0]);
+    }
+  }, [selectedCategory, form]);
+
+  // Update form values when isFixedAsset changes
+  useEffect(() => {
+    form.setValue('isFixedAsset', isFixedAsset);
+    
+    // Reset shelf life days if it's a fixed asset
+    if (isFixedAsset) {
+      form.setValue('shelfLifeDays', undefined);
+    } else {
+      form.setValue('shelfLifeDays', 7);
+    }
+  }, [isFixedAsset, form]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
+      // Calculate expiry date only for non-fixed assets
+      const expiryDate = !values.isFixedAsset && values.shelfLifeDays
+        ? new Date(new Date(values.purchaseDate).setDate(
+            new Date(values.purchaseDate).getDate() + values.shelfLifeDays
+          )).toISOString()
+        : undefined;
+
       const result = await addInventoryItem({
         ...values,
         purchaseDate: new Date(values.purchaseDate).toISOString(),
-        expiryDate: new Date(new Date(values.purchaseDate).setDate(
-          new Date(values.purchaseDate).getDate() + values.shelfLifeDays
-        )).toISOString()
+        expiryDate,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        subcategory: values.subcategory as any
       });
 
       if (result.success) {
         toast.success("Item added successfully");
         form.reset();
+        // Reset to default values
+        setSelectedCategory(INVENTORY_CATEGORIES[0]);
+        setIsFixedAsset(false);
+        
+        // Call the onItemAdded callback if provided
+        if (onItemAdded) {
+          onItemAdded();
+        }
       } else {
         toast.error("Failed to add item", {
           description: result.error
@@ -56,205 +112,492 @@ export function AddInventoryForm() {
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-2xl">
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {INVENTORY_CATEGORIES.map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+    <Tabs defaultValue="consumable" className="w-full">
+      <TabsList className="grid w-full grid-cols-2 mb-6">
+        <TabsTrigger 
+          value="consumable" 
+          onClick={() => setIsFixedAsset(false)}
+        >
+          Consumable Items
+        </TabsTrigger>
+        <TabsTrigger 
+          value="fixed-asset" 
+          onClick={() => setIsFixedAsset(true)}
+        >
+          Fixed Assets
+        </TabsTrigger>
+      </TabsList>
 
-          <FormField
-            control={form.control}
-            name="itemName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Item Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter item name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="quantity"
-            render={({ field }) => (
-              <FormItem>
-      <FormLabel>Quantity</FormLabel>
-      <FormControl>
-        <Input
-          type="number"
-          min="0"
-          step="1"
-          {...field}
-          onChange={(e) => {
-            const value = e.target.value;
-            // Convert to positive integer or 0
-            const quantity = Math.max(0, Math.floor(Number(value)) || 0);
-            field.onChange(quantity);
-          }}
-          onBlur={(e) => {
-            const value = e.target.value;
-            // Ensure empty input becomes 0
-            if (!value) {
-              field.onChange(0);
-            }
-          }}
-        />
-      </FormControl>
-      <FormMessage />
-    </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="unit"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Unit</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select unit" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {INVENTORY_UNITS.map(unit => (
-                      <SelectItem key={unit} value={unit}>{unit}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="purchaseDate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Purchase Date</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="shelfLifeDays"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Shelf Life (days)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    {...field}
-                    onChange={e => field.onChange(parseInt(e.target.value))}
+      <TabsContent value="consumable">
+        <Card>
+          <CardHeader>
+            <CardTitle>Add Consumable Item</CardTitle>
+            <CardDescription>
+              Add items for Chocolate Room, Beer Room, or Kitchen
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-2xl">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select 
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            setSelectedCategory(value);
+                          }} 
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {INVENTORY_CATEGORIES.map(cat => (
+                              <SelectItem key={cat} value={cat}>
+                                {CATEGORY_DISPLAY_NAMES[cat]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
-          <FormField
-            control={form.control}
-            name="brand"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Brand</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter brand name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="cost"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cost</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="1"
-                    {...field}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  <FormField
+                    control={form.control}
+                    name="subcategory"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subcategory</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select subcategory" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {availableSubcategories.map(subcat => (
+                              <SelectItem key={subcat} value={subcat}>
+                                {SUBCATEGORY_DISPLAY_NAMES[subcat]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
-          <FormField
-            control={form.control}
-            name="supplierName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Supplier Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter supplier name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                  <FormField
+                    control={form.control}
+                    name="itemName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Item Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter item name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-          <FormField
-            control={form.control}
-            name="supplierContact"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Supplier Contact</FormLabel>
-                <FormControl>
-                  <Input placeholder="Email or phone number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                  <FormField
+                    control={form.control}
+                    name="brand"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Brand (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter brand name" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-        <Button type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="mr-2 h-4 w-4" />
-          )}
-          Add Item
-        </Button>
-      </form>
-    </Form>
+                  <FormField
+                    control={form.control}
+                    name="quantity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Quantity</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="Enter quantity" 
+                            {...field}
+                            onChange={e => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="unit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unit</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select unit" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {INVENTORY_UNITS.map(unit => (
+                              <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="purchaseDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Purchase Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="shelfLifeDays"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Shelf Life (Days)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="Enter shelf life in days" 
+                            {...field}
+                            onChange={e => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="cost"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cost</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="Enter cost" 
+                            {...field}
+                            onChange={e => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="supplierName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Supplier Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter supplier name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="supplierContact"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Supplier Contact (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Phone or email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Item
+                    </>
+                  )}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="fixed-asset">
+        <Card>
+          <CardHeader>
+            <CardTitle>Add Fixed Asset</CardTitle>
+            <CardDescription>
+              Add fixed assets for Chocolate Room, Beer Room, or Kitchen
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-2xl">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select 
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            setSelectedCategory(value);
+                          }} 
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {INVENTORY_CATEGORIES.map(cat => (
+                              <SelectItem key={cat} value={cat}>
+                                {CATEGORY_DISPLAY_NAMES[cat]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="subcategory"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subcategory</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select subcategory" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {availableSubcategories.map(subcat => (
+                              <SelectItem key={subcat} value={subcat}>
+                                {SUBCATEGORY_DISPLAY_NAMES[subcat]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="itemName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Asset Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter asset name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="brand"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Brand (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter brand name" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="quantity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Quantity</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="Enter quantity" 
+                            {...field}
+                            onChange={e => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="unit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unit</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select unit" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {INVENTORY_UNITS.map(unit => (
+                              <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="assetLocation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Asset Location</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter asset location" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="purchaseDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Purchase Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="cost"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cost</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="Enter cost" 
+                            {...field}
+                            onChange={e => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="supplierName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Supplier Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter supplier name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="supplierContact"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Supplier Contact (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Phone or email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Fixed Asset
+                    </>
+                  )}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
   );
 } 

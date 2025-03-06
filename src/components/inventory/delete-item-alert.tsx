@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,28 +13,33 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
 import { deleteInventoryItem } from "@/lib/actions/inventory";
 import { toast } from "sonner";
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 
-interface DeleteItemAlertProps {
+export interface DeleteItemAlertProps {
   itemId: number;
   itemName: string;
+  onSuccess?: () => void;
 }
 
-export function DeleteItemAlert({ itemId, itemName }: DeleteItemAlertProps) {
+export function DeleteItemAlert({ itemId, itemName, onSuccess }: DeleteItemAlertProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
-  async function handleDelete() {
+  const handleDelete = async () => {
+    setIsDeleting(true);
     try {
-      setIsDeleting(true);
       const result = await deleteInventoryItem(itemId);
       
       if (result.success) {
         toast.success("Item deleted successfully");
+        setIsOpen(false);
+        
+        // Call the onSuccess callback if provided
+        if (onSuccess) {
+          onSuccess();
+        }
       } else {
         toast.error("Failed to delete item", {
           description: result.error
@@ -44,28 +51,32 @@ export function DeleteItemAlert({ itemId, itemName }: DeleteItemAlertProps) {
     } finally {
       setIsDeleting(false);
     }
-  }
+  };
 
   return (
-    <AlertDialog>
+    <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive" size="sm">
-          <Trash2 className="h-4 w-4" />
+        <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+          <Trash2 className="h-4 w-4 mr-1" />
+          Delete
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete &quot;{itemName}&quot; from your inventory.
+            This will permanently delete <span className="font-semibold">{itemName}</span> from your inventory.
             This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDelete}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          <AlertDialogAction 
+            onClick={(e) => {
+              e.preventDefault();
+              handleDelete();
+            }}
+            className="bg-red-500 hover:bg-red-600"
             disabled={isDeleting}
           >
             {isDeleting ? (
@@ -74,7 +85,7 @@ export function DeleteItemAlert({ itemId, itemName }: DeleteItemAlertProps) {
                 Deleting...
               </>
             ) : (
-              <>Delete</>
+              "Delete"
             )}
           </AlertDialogAction>
         </AlertDialogFooter>

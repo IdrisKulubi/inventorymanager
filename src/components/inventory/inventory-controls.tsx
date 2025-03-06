@@ -2,66 +2,64 @@
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { InventoryItem } from "@/db/schema";
-import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { Input } from "@/components/ui/input";
+import { CATEGORY_DISPLAY_NAMES } from "@/lib/constants";
+import { Download, Search } from "lucide-react";
+import { useState } from "react";
 
 export function InventoryControls({ 
-  items,
-  initialSearch
+  onSearch,
+  onCategoryChange,
+  selectedCategory = "all"
 }: { 
-  items: InventoryItem[];
-  initialSearch?: string;
+  onSearch: (term: string) => void;
+  onCategoryChange: (category: string) => void;
+  selectedCategory?: string;
 }) {
-  const router = useRouter();
-  const categories = Array.from(new Set(items.map(item => item.category)));
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const handleCategoryChange = useCallback((category: string) => {
-    const params = new URLSearchParams();
-    if (category && category !== "all") params.set("category", category);
-    if (initialSearch) params.set("q", initialSearch);
-    router.push(`?${params.toString()}`);
-  }, [router, initialSearch]);
-
-  const handleExport = useCallback(() => {
-    const csvContent = [
-      ["ID", "Item Name", "Category", "Quantity", "Unit", "Expiry Date", "Supplier"],
-      ...items.map(item => [
-        item.id,
-        item.itemName,
-        item.category,
-        item.quantity,
-        item.unit,
-        new Date(item.expiryDate).toLocaleDateString(),
-        item.supplierContact
-      ])
-    ].map(e => e.join(",")).join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "inventory-export.csv";
-    a.click();
-  }, [items]);
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch(searchTerm);
+  };
 
   return (
-    <div className="flex gap-4 mb-4">
-      <Select onValueChange={handleCategoryChange}>
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="Filter by category" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Categories</SelectItem>
-          {categories.map(category => (
-            <SelectItem key={category} value={category}>{category}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      
-      <Button onClick={handleExport}>
-        Export CSV
-      </Button>
+    <div className="space-y-4">
+      <form onSubmit={handleSearch} className="flex gap-2">
+        <Input
+          placeholder="Search inventory..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-1"
+        />
+        <Button type="submit" variant="secondary">
+          <Search className="h-4 w-4 mr-2" />
+          Search
+        </Button>
+      </form>
+
+      <div className="flex flex-wrap gap-4">
+        <Select 
+          value={selectedCategory} 
+          onValueChange={onCategoryChange}
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Filter by category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="chocolate_room">{CATEGORY_DISPLAY_NAMES.chocolate_room}</SelectItem>
+            <SelectItem value="beer_room">{CATEGORY_DISPLAY_NAMES.beer_room}</SelectItem>
+            <SelectItem value="kitchen">{CATEGORY_DISPLAY_NAMES.kitchen}</SelectItem>
+            <SelectItem value="fixed-assets">Fixed Assets</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Button variant="outline" onClick={() => window.print()}>
+          <Download className="h-4 w-4 mr-2" />
+          Export
+        </Button>
+      </div>
     </div>
   );
 } 

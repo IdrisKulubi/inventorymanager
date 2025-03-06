@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1739254556049,
-      "tag": "0000_magenta_micromax",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1740671003843,
-      "tag": "0001_cool_skrulls",
+      "when": 1741248292922,
+      "tag": "0000_loud_talon",
       "breakpoints": true
     }
   ]

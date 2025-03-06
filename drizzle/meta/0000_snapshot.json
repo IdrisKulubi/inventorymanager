@@ -1,5 +1,5 @@
 {
-  "id": "972ac578-4ae3-462d-9aa6-569cd540b9e6",
+  "id": "abc8f160-e033-44ba-a150-29980604c2ba",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -16,7 +16,15 @@
         },
         "category": {
           "name": "category",
-          "type": "text",
+          "type": "inventory_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subcategory": {
+          "name": "subcategory",
+          "type": "inventory_subcategory",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -54,16 +62,41 @@
           "name": "shelf_life_days",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "expiry_date": {
           "name": "expiry_date",
           "type": "date",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "supplier_contact": {
           "name": "supplier_contact",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cost": {
+          "name": "cost",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "supplier_name": {
+          "name": "supplier_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_fixed_asset": {
+          "name": "is_fixed_asset",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "asset_location": {
+          "name": "asset_location",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -85,7 +118,41 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.inventory_category": {
+      "name": "inventory_category",
+      "schema": "public",
+      "values": [
+        "chocolate_room",
+        "beer_room",
+        "fixed_assets",
+        "kitchen"
+      ]
+    },
+    "public.inventory_subcategory": {
+      "name": "inventory_subcategory",
+      "schema": "public",
+      "values": [
+        "chocolates",
+        "bakery",
+        "barista",
+        "other_chocolate",
+        "beer",
+        "whisky",
+        "wine",
+        "spirits",
+        "other_alcohol",
+        "chocolate_room_assets",
+        "beer_room_assets",
+        "kitchen_assets",
+        "general_assets",
+        "ingredients",
+        "utensils",
+        "appliances",
+        "other_kitchen"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},
