@@ -5,6 +5,7 @@ import { inventoryItems } from "@/db/schema";
 import { eq, sql, or, and} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { InventoryItem, NewInventoryItem } from "@/db/schema";
+import { InventoryFormValues } from "../validators";
 
 export async function addInventoryItem(item: NewInventoryItem) {
   try {
@@ -20,8 +21,10 @@ export async function addInventoryItem(item: NewInventoryItem) {
   }
 }
 
-export async function updateInventoryItem(id: number, item: Partial<InventoryItem>) {
+export async function updateInventoryItem(values: InventoryFormValues & { id: number, expiryDate?: string }) {
   try {
+    const { id, ...item } = values;
+    
     await db.update(inventoryItems)
       .set(item)
       .where(eq(inventoryItems.id, id));
@@ -95,18 +98,22 @@ export async function getInventoryItems(category?: string, search?: string) {
 
 export async function exportToCSV(items: InventoryItem[]) {
   const csvContent = [
-    ["ID", "Item", "Category", "Subcategory", "Quantity", "Unit", "Cost", "Expiry", "Supplier", "Contact", "Fixed Asset", "Location"],
+    ["ID", "Item", "Category", "Subcategory", "Quantity", "Order Quantity", "Unit", "Cost", "Shelf Life", "Expiry Date", "Expiry Status", "Supplier", "Email", "Phone", "Fixed Asset", "Location"],
     ...items.map(item => [
       item.id,
       item.itemName,
       item.category,
       item.subcategory,
       item.quantity,
+      item.orderQuantity || "N/A",
       item.unit,
       item.cost ? `$${item.cost.toLocaleString()}` : "N/A",
+      item.shelfLifeValue && item.shelfLifeUnit ? `${item.shelfLifeValue} ${item.shelfLifeUnit}` : "N/A",
       item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : "N/A",
+      item.expiryStatus || "N/A",
       item.supplierName || "N/A",
-      item.supplierContact || "N/A",
+      item.supplierEmail || "N/A",
+      item.supplierPhone || "N/A",
       item.isFixedAsset ? "Yes" : "No",
       item.assetLocation || "N/A"
     ])
@@ -120,7 +127,6 @@ export async function getInventoryStats() {
     const items = await db.select().from(inventoryItems);
     
     const now = new Date();
-    const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     // Count items by category
     const chocolateRoomItems = items.filter(item => item.category === 'chocolate_room' && !item.isFixedAsset).length;
@@ -128,15 +134,19 @@ export async function getInventoryStats() {
     const kitchenItems = items.filter(item => item.category === 'kitchen' && !item.isFixedAsset).length;
     const fixedAssets = items.filter(item => item.isFixedAsset).length;
 
+    // Count items by expiry status
+    const expiredItems = items.filter(item => item.expiryStatus === 'expired').length;
+    const expiringSoonItems = items.filter(item => item.expiryStatus === 'expiring_soon').length;
+    const validItems = items.filter(item => item.expiryStatus === 'valid').length;
+
     const stats = {
       totalItems: items.length,
       totalCategories: new Set(items.map(item => item.category)).size,
-      expiringSoon: items.filter(item => {
-        if (!item.expiryDate) return false;
-        const expiry = new Date(item.expiryDate);
-        return expiry > now && expiry <= oneWeekFromNow;
-      }).length,
+      expiringSoon: expiringSoonItems,
+      expired: expiredItems,
+      valid: validItems,
       lowStock: items.filter(item => !item.isFixedAsset && item.quantity < 10).length,
+      needsOrdering: items.filter(item => !item.isFixedAsset && item.orderQuantity && item.orderQuantity > 0).length,
       categoryBreakdown: {
         chocolateRoom: chocolateRoomItems,
         beerRoom: beerRoomItems,
@@ -164,7 +174,10 @@ export async function getInventoryStats() {
       totalItems: 0,
       totalCategories: 0,
       expiringSoon: 0,
+      expired: 0,
+      valid: 0,
       lowStock: 0,
+      needsOrdering: 0,
       categoryBreakdown: {
         chocolateRoom: 0,
         beerRoom: 0,

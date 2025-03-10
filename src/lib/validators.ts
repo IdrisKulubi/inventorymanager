@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { INVENTORY_CATEGORIES,  INVENTORY_UNITS } from "./constants";
+import { INVENTORY_CATEGORIES, INVENTORY_UNITS, SHELF_LIFE_UNITS, EXPIRY_STATUS_OPTIONS } from "./constants";
 
 // Base schema with common fields for all inventory items
 const baseSchema = {
@@ -12,6 +12,10 @@ const baseSchema = {
     quantity: z.number()
         .min(1, "Quantity must be at least 1")
         .max(10000, "Quantity cannot exceed 10000"),
+    orderQuantity: z.number()
+        .min(0, "Order quantity must be non-negative")
+        .max(10000, "Order quantity cannot exceed 10000")
+        .optional(),
     unit: z.enum(INVENTORY_UNITS, {
         message: "Please select a valid unit"
     }),
@@ -23,12 +27,22 @@ export const consumableItemSchema = z.object({
     purchaseDate: z.string().refine(val => !isNaN(Date.parse(val)), {
         message: "Invalid date format"
     }),
-    shelfLifeDays: z.number()
-        .min(1, "Minimum 1 day")
-        .max(3650, "Maximum 10 years"),
-    supplierContact: z.string()
-        .regex(/^(\+?[0-9]{10,15}|[^@]+@[^\.]+\..+)?$/, "Invalid contact format")
+    shelfLifeValue: z.number()
+        .min(1, "Minimum value is 1")
+        .max(100, "Maximum value is 100"),
+    shelfLifeUnit: z.enum(SHELF_LIFE_UNITS, {
+        message: "Please select a valid shelf life unit"
+    }),
+    expiryStatus: z.enum(EXPIRY_STATUS_OPTIONS, {
+        message: "Please select a valid expiry status"
+    }).optional(),
+    supplierEmail: z.string()
+        .email("Invalid email format")
         .optional(),
+    supplierPhone: z.string()
+        .regex(/^\+?[0-9]{10,15}$/, "Invalid phone number format")
+        .optional(),
+    supplierContact: z.string().optional(),
     cost: z.number().min(0, "Cost must be positive"),
     supplierName: z.string().min(1, "Supplier name is required"),
     isFixedAsset: z.literal(false),
@@ -41,10 +55,20 @@ export const fixedAssetSchema = z.object({
     purchaseDate: z.string().refine(val => !isNaN(Date.parse(val)), {
         message: "Invalid date format"
     }),
-    shelfLifeDays: z.number().optional(),
-    supplierContact: z.string()
-        .regex(/^(\+?[0-9]{10,15}|[^@]+@[^\.]+\..+)?$/, "Invalid contact format")
+    shelfLifeValue: z.number().optional(),
+    shelfLifeUnit: z.enum(SHELF_LIFE_UNITS, {
+        message: "Please select a valid shelf life unit"
+    }).optional(),
+    expiryStatus: z.enum(EXPIRY_STATUS_OPTIONS, {
+        message: "Please select a valid expiry status"
+    }).optional(),
+    supplierEmail: z.string()
+        .email("Invalid email format")
         .optional(),
+    supplierPhone: z.string()
+        .regex(/^\+?[0-9]{10,15}$/, "Invalid phone number format")
+        .optional(),
+    supplierContact: z.string().optional(),
     cost: z.number().min(0, "Cost must be positive"),
     supplierName: z.string().min(1, "Supplier name is required"),
     isFixedAsset: z.literal(true),

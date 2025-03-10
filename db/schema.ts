@@ -35,6 +35,21 @@ export const inventorySubcategoryEnum = pgEnum('inventory_subcategory', [
   'other_kitchen'
 ]);
 
+// Define enum for shelf life unit
+export const shelfLifeUnitEnum = pgEnum('shelf_life_unit', [
+  'days',
+  'weeks',
+  'months',
+  'years'
+]);
+
+// Define enum for expiry status
+export const expiryStatusEnum = pgEnum('expiry_status', [
+  'valid',
+  'expiring_soon',
+  'expired'
+]);
+
 export const inventoryItems = pgTable("inventory_items", {
   id: serial("id").primaryKey(),
   category: inventoryCategoryEnum("category").notNull(),
@@ -42,10 +57,15 @@ export const inventoryItems = pgTable("inventory_items", {
   itemName: text("item_name").notNull(),
   brand: text("brand"),
   quantity: integer("quantity").notNull(),
+  orderQuantity: integer("order_quantity"),
   unit: text("unit").notNull(),
   purchaseDate: date("purchase_date").notNull(),
-  shelfLifeDays: integer("shelf_life_days"),
+  shelfLifeValue: integer("shelf_life_value"),
+  shelfLifeUnit: shelfLifeUnitEnum("shelf_life_unit"),
   expiryDate: date("expiry_date"),
+  expiryStatus: expiryStatusEnum("expiry_status"),
+  supplierEmail: text("supplier_email"),
+  supplierPhone: text("supplier_phone"),
   supplierContact: text("supplier_contact"),
   cost: integer("cost"),
   supplierName: text("supplier_name"),

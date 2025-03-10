@@ -44,7 +44,6 @@ export const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
 };
 
 export const SUBCATEGORY_DISPLAY_NAMES: Record<string, string> = {
-    // Chocolate Room
     chocolates: 'Chocolates',
     bakery: 'Bakery',
     barista: 'Barista',
@@ -86,7 +85,38 @@ export const INVENTORY_UNITS = [
     'unit'
 ] as const;
 
+// Shelf life units
+export const SHELF_LIFE_UNITS = [
+    'days',
+    'weeks',
+    'months',
+    'years'
+] as const;
+
+// Expiry status options
+export const EXPIRY_STATUS_OPTIONS = [
+    'valid',
+    'expiring_soon',
+    'expired'
+] as const;
+
+// Display names for shelf life units and expiry status
+export const SHELF_LIFE_UNIT_DISPLAY_NAMES: Record<string, string> = {
+    days: 'Days',
+    weeks: 'Weeks',
+    months: 'Months',
+    years: 'Years'
+};
+
+export const EXPIRY_STATUS_DISPLAY_NAMES: Record<string, string> = {
+    valid: 'Valid',
+    expiring_soon: 'Expiring Soon',
+    expired: 'Expired'
+};
+
 // Type helpers
 export type InventoryCategory = typeof INVENTORY_CATEGORIES[number];
 export type InventorySubcategory = typeof INVENTORY_SUBCATEGORIES[keyof typeof INVENTORY_SUBCATEGORIES][number];
 export type InventoryUnit = typeof INVENTORY_UNITS[number];
+export type ShelfLifeUnit = typeof SHELF_LIFE_UNITS[number];
+export type ExpiryStatus = typeof EXPIRY_STATUS_OPTIONS[number];

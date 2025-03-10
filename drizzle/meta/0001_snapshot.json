@@ -1,0 +1,217 @@
+{
+  "id": "4e850e98-05fb-4ebf-9782-99f666df31d8",
+  "prevId": "abc8f160-e033-44ba-a150-29980604c2ba",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.inventory_items": {
+      "name": "inventory_items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "inventory_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subcategory": {
+          "name": "subcategory",
+          "type": "inventory_subcategory",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_name": {
+          "name": "item_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "brand": {
+          "name": "brand",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "order_quantity": {
+          "name": "order_quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unit": {
+          "name": "unit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "purchase_date": {
+          "name": "purchase_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shelf_life_value": {
+          "name": "shelf_life_value",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shelf_life_unit": {
+          "name": "shelf_life_unit",
+          "type": "shelf_life_unit",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expiry_date": {
+          "name": "expiry_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expiry_status": {
+          "name": "expiry_status",
+          "type": "expiry_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "supplier_email": {
+          "name": "supplier_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "supplier_phone": {
+          "name": "supplier_phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "supplier_contact": {
+          "name": "supplier_contact",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cost": {
+          "name": "cost",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "supplier_name": {
+          "name": "supplier_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_fixed_asset": {
+          "name": "is_fixed_asset",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "asset_location": {
+          "name": "asset_location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.expiry_status": {
+      "name": "expiry_status",
+      "schema": "public",
+      "values": [
+        "valid",
+        "expiring_soon",
+        "expired"
+      ]
+    },
+    "public.inventory_category": {
+      "name": "inventory_category",
+      "schema": "public",
+      "values": [
+        "chocolate_room",
+        "beer_room",
+        "fixed_assets",
+        "kitchen"
+      ]
+    },
+    "public.inventory_subcategory": {
+      "name": "inventory_subcategory",
+      "schema": "public",
+      "values": [
+        "chocolates",
+        "bakery",
+        "barista",
+        "other_chocolate",
+        "beer",
+        "whisky",
+        "wine",
+        "spirits",
+        "other_alcohol",
+        "chocolate_room_assets",
+        "beer_room_assets",
+        "kitchen_assets",
+        "general_assets",
+        "ingredients",
+        "utensils",
+        "appliances",
+        "other_kitchen"
+      ]
+    },
+    "public.shelf_life_unit": {
+      "name": "shelf_life_unit",
+      "schema": "public",
+      "values": [
+        "days",
+        "weeks",
+        "months",
+        "years"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

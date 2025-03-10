@@ -14,7 +14,11 @@ import {
   INVENTORY_SUBCATEGORIES, 
   INVENTORY_UNITS,
   CATEGORY_DISPLAY_NAMES,
-  SUBCATEGORY_DISPLAY_NAMES
+  SUBCATEGORY_DISPLAY_NAMES,
+  SHELF_LIFE_UNITS,
+  SHELF_LIFE_UNIT_DISPLAY_NAMES,
+  EXPIRY_STATUS_OPTIONS,
+  EXPIRY_STATUS_DISPLAY_NAMES
 } from "@/lib/constants";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
@@ -41,9 +45,14 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
       itemName: "",
       brand: "",
       quantity: 1,
+      orderQuantity: 0,
       unit: INVENTORY_UNITS[0],
       purchaseDate: new Date().toISOString().split('T')[0],
-      shelfLifeDays: 7,
+      shelfLifeValue: 7,
+      shelfLifeUnit: 'days',
+      expiryStatus: 'valid',
+      supplierEmail: "",
+      supplierPhone: "",
       supplierContact: "",
       cost: 0,
       supplierName: "",
@@ -64,22 +73,42 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
   useEffect(() => {
     form.setValue('isFixedAsset', isFixedAsset);
     
-    // Reset shelf life days if it's a fixed asset
+    // Reset shelf life values if it's a fixed asset
     if (isFixedAsset) {
-      form.setValue('shelfLifeDays', undefined);
+      form.setValue('shelfLifeValue', undefined);
+      form.setValue('shelfLifeUnit', undefined);
+      form.setValue('expiryStatus', undefined);
     } else {
-      form.setValue('shelfLifeDays', 7);
+      form.setValue('shelfLifeValue', 7);
+      form.setValue('shelfLifeUnit', 'days');
+      form.setValue('expiryStatus', 'valid');
     }
   }, [isFixedAsset, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      // Calculate expiry date only for non-fixed assets
-      const expiryDate = !values.isFixedAsset && values.shelfLifeDays
-        ? new Date(new Date(values.purchaseDate).setDate(
-            new Date(values.purchaseDate).getDate() + values.shelfLifeDays
-          )).toISOString()
-        : undefined;
+      // Calculate expiry date based on shelf life value and unit
+      let expiryDate: string | undefined = undefined;
+      
+      if (!values.isFixedAsset && values.shelfLifeValue && values.shelfLifeUnit) {
+        const purchaseDate = new Date(values.purchaseDate);
+        let daysToAdd = values.shelfLifeValue;
+        
+        // Convert shelf life to days based on the unit
+        switch (values.shelfLifeUnit) {
+          case 'weeks':
+            daysToAdd = values.shelfLifeValue * 7;
+            break;
+          case 'months':
+            daysToAdd = values.shelfLifeValue * 30;
+            break;
+          case 'years':
+            daysToAdd = values.shelfLifeValue * 365;
+            break;
+        }
+        
+        expiryDate = new Date(purchaseDate.setDate(purchaseDate.getDate() + daysToAdd)).toISOString();
+      }
 
       const result = await addInventoryItem({
         ...values,
@@ -133,7 +162,7 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
           <CardHeader>
             <CardTitle>Add Consumable Item</CardTitle>
             <CardDescription>
-              Add items for Chocolate Room, Beer Room, or Kitchen
+              Add items for Barista, Kitchen, or Beer Room
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -245,6 +274,25 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
 
                   <FormField
                     control={form.control}
+                    name="orderQuantity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Order Quantity</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="Enter order quantity" 
+                            {...field}
+                            onChange={e => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="unit"
                     render={({ field }) => (
                       <FormItem>
@@ -282,18 +330,68 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
 
                   <FormField
                     control={form.control}
-                    name="shelfLifeDays"
+                    name="shelfLifeValue"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Shelf Life (Days)</FormLabel>
+                        <FormLabel>Shelf Life Value</FormLabel>
                         <FormControl>
                           <Input 
                             type="number" 
-                            placeholder="Enter shelf life in days" 
+                            placeholder="Enter shelf life value" 
                             {...field}
                             onChange={e => field.onChange(Number(e.target.value))}
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="shelfLifeUnit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Shelf Life Unit</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select shelf life unit" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {SHELF_LIFE_UNITS.map(unit => (
+                              <SelectItem key={unit} value={unit}>
+                                {SHELF_LIFE_UNIT_DISPLAY_NAMES[unit]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="expiryStatus"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Expiry Status</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select expiry status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {EXPIRY_STATUS_OPTIONS.map(status => (
+                              <SelectItem key={status} value={status}>
+                                {EXPIRY_STATUS_DISPLAY_NAMES[status]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -334,12 +432,26 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
 
                   <FormField
                     control={form.control}
-                    name="supplierContact"
+                    name="supplierEmail"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Supplier Contact (Optional)</FormLabel>
+                        <FormLabel>Supplier Email</FormLabel>
                         <FormControl>
-                          <Input placeholder="Phone or email" {...field} />
+                          <Input placeholder="Enter supplier email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="supplierPhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Supplier Phone</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter supplier phone" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -371,7 +483,7 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
           <CardHeader>
             <CardTitle>Add Fixed Asset</CardTitle>
             <CardDescription>
-              Add fixed assets for Chocolate Room, Beer Room, or Kitchen
+              Add fixed assets for Barista, Kitchen, or Beer Room
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -483,6 +595,25 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
 
                   <FormField
                     control={form.control}
+                    name="orderQuantity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Order Quantity</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="Enter order quantity" 
+                            {...field}
+                            onChange={e => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="unit"
                     render={({ field }) => (
                       <FormItem>
@@ -567,12 +698,26 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
 
                   <FormField
                     control={form.control}
-                    name="supplierContact"
+                    name="supplierEmail"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Supplier Contact (Optional)</FormLabel>
+                        <FormLabel>Supplier Email</FormLabel>
                         <FormControl>
-                          <Input placeholder="Phone or email" {...field} />
+                          <Input placeholder="Enter supplier email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="supplierPhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Supplier Phone</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter supplier phone" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -8,6 +8,13 @@
       "when": 1741248292922,
       "tag": "0000_loud_talon",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1741613776113,
+      "tag": "0001_natural_moira_mactaggert",
+      "breakpoints": true
     }
   ]
 }
