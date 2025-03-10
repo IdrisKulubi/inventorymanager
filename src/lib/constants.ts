@@ -1,6 +1,6 @@
 // Main inventory categories
 export const INVENTORY_CATEGORIES = [
-    'barista_room',
+    'chocolate_room',
     'beer_room',
     'fixed_assets',
     'kitchen'
@@ -8,7 +8,7 @@ export const INVENTORY_CATEGORIES = [
 
 // Subcategories mapped to main categories
 export const INVENTORY_SUBCATEGORIES: Record<string, readonly string[]> = {
-    barista_room: [
+    chocolate_room: [
         'chocolates',
         'bakery',
         'barista',
@@ -22,7 +22,7 @@ export const INVENTORY_SUBCATEGORIES: Record<string, readonly string[]> = {
         'other_alcohol'
     ],
     fixed_assets: [
-        'barista_assets',
+        'chocolate_room_assets',
         'beer_room_assets',
         'kitchen_assets',
         'general_assets'
@@ -37,7 +37,7 @@ export const INVENTORY_SUBCATEGORIES: Record<string, readonly string[]> = {
 
 // Display names for categories and subcategories
 export const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
-    chocolate_room: 'Barista Room',
+    chocolate_room: 'Chocolate Room',
     beer_room: 'Beer Room',
     fixed_assets: 'Fixed Assets',
     kitchen: 'Kitchen'
@@ -57,7 +57,7 @@ export const SUBCATEGORY_DISPLAY_NAMES: Record<string, string> = {
     other_alcohol: 'Other Alcohol',
     
     // Fixed Assets
-    chocolate_room_assets: 'Barista  Assets',
+    chocolate_room_assets: 'Chocolate Room Assets',
     beer_room_assets: 'Beer Room Assets',
     kitchen_assets: 'Kitchen Assets',
     general_assets: 'General Assets',
