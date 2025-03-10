@@ -26,7 +26,8 @@ export async function updateInventoryItem(values: InventoryFormValues & { id: nu
     const { id, ...item } = values;
     
     await db.update(inventoryItems)
-      .set(item)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .set(item as any)
       .where(eq(inventoryItems.id, id));
     
     // Revalidate the path to update the UI
