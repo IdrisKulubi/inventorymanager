@@ -44,10 +44,12 @@ yarn install
 ```
 
 3. Create a `.env.local` file in the root directory and add your environment variables:
+   
 ```bash
 DATABASE_URL="your-database-url"
-# Add other necessary environment variables
+# Add other necessary environment variables which is just the dataabase url
 ```
+I m using neon db  so just create an account on Neon and create a project then copy the database url.
 
 4. Run the development server:
 ```bash
