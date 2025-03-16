@@ -57,23 +57,22 @@ export async function deleteInventoryItem(id: number) {
 
 export async function getInventoryItems(category?: string, search?: string) {
   try {
-    const query = db.select().from(inventoryItems);
+    let query = db.select().from(inventoryItems);
     
-    if (category && category !== "all") {
-      if (category === "fixed-assets") {
-        query.where(eq(inventoryItems.isFixedAsset, true));
-      } else {
-        query.where(
-          and(
-            eq(inventoryItems.category, category as "chocolate_room" | "beer_room" | "fixed_assets" | "kitchen"),
-            eq(inventoryItems.isFixedAsset, false)
-          )
-        );
+    if (category) {
+      if (category === "fixed_assets") {
+        query = query.where(eq(inventoryItems.category, "fixed_assets"));
+      } else if (category === "beer_room") {
+        query = query.where(eq(inventoryItems.category, "beer_room"));
+      } else if (category === "chocolate_room") {
+        query = query.where(eq(inventoryItems.category, "chocolate_room"));
+      } else if (category === "kitchen") {
+        query = query.where(eq(inventoryItems.category, "kitchen"));
       }
     }
     
     if (search) {
-      query.where(
+      query = query.where(
         or(
           sql`${inventoryItems.itemName} ILIKE ${`%${search}%`}`,
           sql`${inventoryItems.brand} ILIKE ${`%${search}%`}`,
@@ -83,7 +82,7 @@ export async function getInventoryItems(category?: string, search?: string) {
     }
 
     // Order by expiry date for consumables, and by name for fixed assets
-    query.orderBy(
+    query = query.orderBy(
       sql`CASE WHEN ${inventoryItems.isFixedAsset} = true THEN 1 ELSE 0 END`,
       sql`CASE WHEN ${inventoryItems.expiryDate} IS NULL THEN 1 ELSE 0 END`,
       inventoryItems.expiryDate,
@@ -93,6 +92,22 @@ export async function getInventoryItems(category?: string, search?: string) {
     return await query;
   } catch (error) {
     console.error("Error fetching inventory items:", error);
+    return [];
+  }
+}
+
+export async function getItemsNeedingOrder() {
+  try {
+    return await db.select()
+      .from(inventoryItems)
+      .where(
+        and(
+          sql`order_quantity > 0`,
+          sql`quantity <= minimum_stock_level`
+        )
+      );
+  } catch (error) {
+    console.error("Error fetching items needing order:", error);
     return [];
   }
 }
