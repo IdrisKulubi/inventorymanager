@@ -144,7 +144,9 @@ export default function InventoryPage() {
                     </CardDescription>
                   </div>
                   <div className="w-full md:w-auto">
-                    <SearchInventory category={category === "all" ? undefined : category} />
+                    <Suspense fallback={<Skeleton className="h-10 w-[250px]" />}>
+                      <SearchInventory category={category === "all" ? undefined : category} />
+                    </Suspense>
                   </div>
                 </div>
               </CardHeader>
