@@ -158,6 +158,14 @@ export default async function Home() {
           icon="📋"
           href="/inventory/daily-updates"
         />
+        <DashboardCard
+          title="Analytics"
+          value="View"
+          description="Inventory turnover and insights"
+          variant="default"
+          icon="📊"
+          href="/analytics"
+        />
       </div>
     </div>
   );
