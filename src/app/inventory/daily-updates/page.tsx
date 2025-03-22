@@ -1,0 +1,182 @@
+import { Suspense } from "react";
+import { notFound } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getDailyLogsSummary } from "@/lib/actions/logs";
+import { getInventoryItems } from "@/lib/actions/inventory";
+import { format } from "date-fns";
+
+import Link from "next/link";
+import { VarianceReport } from "@/components/inventory/variance-report";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft } from "lucide-react";
+
+export const metadata = {
+  title: "Daily Inventory Updates",
+  description: "Manage daily inventory counts and view stock variance",
+};
+
+async function DailySummaryCard() {
+  const today = new Date();
+  const summary = await getDailyLogsSummary(today);
+  
+  if (!summary.success) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Today's Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-500">Error loading data</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Today's Activity - {format(today, 'MMMM d, yyyy')}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Items Updated</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary.itemsAffected}</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Count Adjustments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {summary.summary.find(item => item.action === 'count_adjustment')?.count || 0}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Stock Added</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-500">
+                {summary.summary.find(item => item.action === 'stock_added')?.count || 0}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Stock Removed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-500">
+                {summary.summary.find(item => item.action === 'stock_removed')?.count || 0}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+async function CategoryCountsGrid({ category }: { category: string }) {
+  const items = await getInventoryItems(category === 'all' ? undefined : category);
+  
+  if (!items || items.length === 0) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-lg font-medium">No items found</p>
+        <p className="text-sm text-muted-foreground">Try selecting a different category</p>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {items.map((item) => (
+        <Card key={item.id} className="hover:shadow-md transition-shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">{item.itemName}</CardTitle>
+            <p className="text-sm text-muted-foreground">{item.subcategory?.replace(/_/g, ' ')}</p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="text-2xl font-bold">{item.quantity}</div>
+                <p className="text-sm text-muted-foreground">{item.unit}</p>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/inventory/${item.id}?tab=count`}>Update Count</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+export default function DailyUpdatesPage() {
+  return (
+    <div className="container py-8">
+      <div className="mb-6">
+        <Button variant="ghost" asChild className="mb-4">
+          <Link href="/inventory">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Inventory
+          </Link>
+        </Button>
+        <h1 className="text-2xl font-bold tracking-tight">Daily Inventory Updates</h1>
+        <p className="text-muted-foreground">
+          Track daily counts, view stock history, and generate variance reports
+        </p>
+      </div>
+      
+      <div className="space-y-6">
+        <Suspense fallback={<Skeleton className="h-[200px] w-full" />}>
+          <DailySummaryCard />
+        </Suspense>
+        
+        <Tabs defaultValue="variance" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="variance">Variance Report</TabsTrigger>
+            <TabsTrigger value="counts">Daily Counts</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="variance" className="mt-4">
+            <VarianceReport />
+          </TabsContent>
+          
+          <TabsContent value="counts" className="mt-4">
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="beer_room">Beer Room</TabsTrigger>
+                <TabsTrigger value="chocolate_room">Chocolate Room</TabsTrigger>
+                <TabsTrigger value="kitchen">Kitchen</TabsTrigger>
+                <TabsTrigger value="fixed_assets">Fixed Assets</TabsTrigger>
+              </TabsList>
+              
+              {["all", "beer_room", "chocolate_room", "kitchen", "fixed_assets"].map((category) => (
+                <TabsContent key={category} value={category} className="mt-4">
+                  <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
+                    <CategoryCountsGrid category={category} />
+                  </Suspense>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+} 

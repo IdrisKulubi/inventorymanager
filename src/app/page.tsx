@@ -150,6 +150,14 @@ export default async function Home() {
           icon="🛒"
           href="/inventory/filter/needs-ordering"
         />
+        <DashboardCard
+          title="Daily Updates"
+          value="Track"
+          description="Daily counts and variance reports"
+          variant="default"
+          icon="📋"
+          href="/inventory/daily-updates"
+        />
       </div>
     </div>
   );

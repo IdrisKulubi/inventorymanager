@@ -1,5 +1,5 @@
 {
-  "id": "abc8f160-e033-44ba-a150-29980604c2ba",
+  "id": "9c34c124-a173-4f47-a918-a85925deaf5e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -46,6 +46,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "order_quantity": {
+          "name": "order_quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "unit": {
           "name": "unit",
           "type": "text",
@@ -58,15 +64,41 @@
           "primaryKey": false,
           "notNull": true
         },
-        "shelf_life_days": {
-          "name": "shelf_life_days",
+        "shelf_life_value": {
+          "name": "shelf_life_value",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shelf_life_unit": {
+          "name": "shelf_life_unit",
+          "type": "shelf_life_unit",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
         },
         "expiry_date": {
           "name": "expiry_date",
           "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expiry_status": {
+          "name": "expiry_status",
+          "type": "expiry_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "supplier_email": {
+          "name": "supplier_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "supplier_phone": {
+          "name": "supplier_phone",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -107,6 +139,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "minimum_stock_level": {
+          "name": "minimum_stock_level",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stock_value": {
+          "name": "stock_value",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -116,9 +160,126 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.inventory_logs": {
+      "name": "inventory_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "item_id": {
+          "name": "item_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "action": {
+          "name": "action",
+          "type": "log_action",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity_before": {
+          "name": "quantity_before",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quantity_after": {
+          "name": "quantity_after",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "value_before": {
+          "name": "value_before",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "value_after": {
+          "name": "value_after",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_name": {
+          "name": "user_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_stamp": {
+          "name": "date_stamp",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "inventory_logs_item_id_inventory_items_id_fk": {
+          "name": "inventory_logs_item_id_inventory_items_id_fk",
+          "tableFrom": "inventory_logs",
+          "tableTo": "inventory_items",
+          "columnsFrom": [
+            "item_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
+    "public.expiry_status": {
+      "name": "expiry_status",
+      "schema": "public",
+      "values": [
+        "valid",
+        "expiring_soon",
+        "expired"
+      ]
+    },
     "public.inventory_category": {
       "name": "inventory_category",
       "schema": "public",
@@ -150,6 +311,28 @@
         "utensils",
         "appliances",
         "other_kitchen"
+      ]
+    },
+    "public.log_action": {
+      "name": "log_action",
+      "schema": "public",
+      "values": [
+        "count_adjustment",
+        "stock_added",
+        "stock_removed",
+        "item_created",
+        "item_updated",
+        "item_deleted"
+      ]
+    },
+    "public.shelf_life_unit": {
+      "name": "shelf_life_unit",
+      "schema": "public",
+      "values": [
+        "days",
+        "weeks",
+        "months",
+        "years"
       ]
     }
   },
