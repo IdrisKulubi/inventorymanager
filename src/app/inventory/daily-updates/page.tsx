@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,7 +24,7 @@ async function DailySummaryCard() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Today's Activity</CardTitle>
+          <CardTitle>Today&pos;s Activity</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-red-500">Error loading data</p>
@@ -34,10 +33,31 @@ async function DailySummaryCard() {
     );
   }
   
+  // Safely type and access the summary data
+  const itemsAffected = typeof summary.itemsAffected === 'number' ? summary.itemsAffected : 0;
+  
+  // Define proper type for summary data
+  interface SummaryItem {
+    action: string;
+    count: number;
+    value_increase?: number;
+    value_decrease?: number;
+  }
+  
+  // Safely convert summary data to the correct type
+  const summaryData: SummaryItem[] = Array.isArray(summary.summary) 
+    ? summary.summary.map(item => ({
+        action: String(item.action || ''),
+        count: Number(item.count || 0),
+        value_increase: typeof item.value_increase === 'number' ? item.value_increase : 0,
+        value_decrease: typeof item.value_decrease === 'number' ? item.value_decrease : 0
+      }))
+    : [];
+  
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Today's Activity - {format(today, 'MMMM d, yyyy')}</CardTitle>
+        <CardTitle>Today&pos;s Activity - {format(today, 'MMMM d, yyyy')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -46,7 +66,7 @@ async function DailySummaryCard() {
               <CardTitle className="text-sm font-medium">Items Updated</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary.itemsAffected}</div>
+              <div className="text-2xl font-bold">{itemsAffected}</div>
             </CardContent>
           </Card>
           
@@ -56,7 +76,7 @@ async function DailySummaryCard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {summary.summary.find(item => item.action === 'count_adjustment')?.count || 0}
+                {summaryData.find(item => item.action === 'count_adjustment')?.count || 0}
               </div>
             </CardContent>
           </Card>
@@ -67,7 +87,7 @@ async function DailySummaryCard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-500">
-                {summary.summary.find(item => item.action === 'stock_added')?.count || 0}
+                {summaryData.find(item => item.action === 'stock_added')?.count || 0}
               </div>
             </CardContent>
           </Card>
@@ -78,7 +98,7 @@ async function DailySummaryCard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-500">
-                {summary.summary.find(item => item.action === 'stock_removed')?.count || 0}
+                {summaryData.find(item => item.action === 'stock_removed')?.count || 0}
               </div>
             </CardContent>
           </Card>

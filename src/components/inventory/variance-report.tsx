@@ -44,7 +44,7 @@ interface VarianceRow {
 }
 
 const CATEGORIES = [
-  { label: 'All Categories', value: '' },
+  { label: 'All Categories', value: 'all' },
   { label: 'Beer Room', value: 'beer_room' },
   { label: 'Chocolate Room', value: 'chocolate_room' },
   { label: 'Kitchen', value: 'kitchen' },
@@ -56,7 +56,7 @@ export function VarianceReport() {
     new Date(new Date().setDate(new Date().getDate() - 7))
   );
   const [endDate, setEndDate] = useState<Date | undefined>(new Date());
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<{
     variances: VarianceRow[];
@@ -70,7 +70,11 @@ export function VarianceReport() {
     
     setIsLoading(true);
     try {
-      const result = await getVarianceReport(startDate, endDate, selectedCategory || undefined);
+      const result = await getVarianceReport(
+        startDate, 
+        endDate, 
+        selectedCategory === 'all' ? undefined : selectedCategory
+      );
       if (result.success && result.variances && result.startDate && result.endDate) {
         setData({
           variances: result.variances as unknown as VarianceRow[],
@@ -247,7 +251,7 @@ export function VarianceReport() {
           <>
             <div className="flex justify-between items-center mb-4">
               <div className="text-sm text-muted-foreground">
-                Showing variance for {selectedCategory ? getCategoryLabel(selectedCategory) : 'all categories'} from {format(new Date(data.startDate), 'MMM d, yyyy')} to {format(new Date(data.endDate), 'MMM d, yyyy')}
+                Showing variance for {selectedCategory === 'all' ? 'all categories' : getCategoryLabel(selectedCategory)} from {format(new Date(data.startDate), 'MMM d, yyyy')} to {format(new Date(data.endDate), 'MMM d, yyyy')}
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
