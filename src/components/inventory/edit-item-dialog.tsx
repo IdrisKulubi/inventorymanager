@@ -20,6 +20,7 @@ interface EditableItem {
   category: string;
   quantity: number;
   unit: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -58,7 +59,10 @@ export function EditItemDialog({
           </DialogDescription>
         </DialogHeader>
         <EditInventoryForm 
-          item={item}
+          item={{
+            ...item,
+            purchaseDate: item.purchaseDate || new Date().toISOString()
+          }}
           onSuccess={() => setOpen(false)} 
         />
       </DialogContent>

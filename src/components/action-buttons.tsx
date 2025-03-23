@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Calendar, FileDown, Pencil } from "lucide-react";
+import {  Calendar, FileDown, Pencil } from "lucide-react";
 import { AddItemDialog } from "@/components/inventory/add-item-dialog";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -44,6 +44,7 @@ export const ExportAction = {
   component: <ExportActionButton />,
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function EditItemActionButton({ item }: { item: any }) {
   return (
     <EditItemDialog 
