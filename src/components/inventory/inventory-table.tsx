@@ -51,12 +51,9 @@ interface InventoryTableProps {
 export function InventoryTable({ items, onItemUpdated }: InventoryTableProps) {
   const [itemToDelete, setItemToDelete] = useState<ExtendedInventoryItem | null>(null);
   
-  // Add debug logs
-  console.log("Items in InventoryTable:", items);
-  console.log("First item structure:", items.length > 0 ? items[0] : "No items");
+ 
   
   const handleDeleteClick = (item: ExtendedInventoryItem) => {
-    console.log("Item to delete:", item);
     setItemToDelete(item);
   };
   

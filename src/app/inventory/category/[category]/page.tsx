@@ -38,9 +38,7 @@ export default async function CategoryPage({
   params: { category: string };
   searchParams: { filter?: string; subcategory?: string };
 }) {
-  console.log("Category page params:", params);
-  console.log("Category page searchParams:", searchParams);
-  
+ 
   const { category } = params;
   const { filter, subcategory } = searchParams;
   
@@ -57,11 +55,9 @@ export default async function CategoryPage({
     const sevenDaysFromNow = addDays(new Date(), 7).toISOString().split('T')[0];
     
     try {
-      console.log(`Executing expiring query for category: ${category}`);
       items = await db.query.inventoryItems.findMany({
         where: sql`category = ${category} AND expiry_date <= ${sevenDaysFromNow} AND expiry_date >= CURRENT_DATE`,
       });
-      console.log(`Found ${items.length} expiring items`);
     } catch (error) {
       console.error("Error fetching expiring items:", error);
     }
@@ -70,11 +66,9 @@ export default async function CategoryPage({
     description = "Items that are below their minimum stock level";
     
     try {
-      console.log(`Executing low-stock query for category: ${category}`);
       items = await db.query.inventoryItems.findMany({
         where: sql`category = ${category} AND quantity <= minimum_stock_level`,
       });
-      console.log(`Found ${items.length} low stock items`);
     } catch (error) {
       console.error("Error fetching low stock items:", error);
     }
@@ -83,11 +77,9 @@ export default async function CategoryPage({
     description = `Items in the ${subcategory.replace(/_/g, " ")} subcategory`;
     
     try {
-      console.log(`Executing subcategory query for category: ${category}, subcategory: ${subcategory}`);
       items = await db.query.inventoryItems.findMany({ 
         where: sql`category = ${category} AND subcategory = ${subcategory}`, 
       });
-      console.log(`Found ${items.length} items in subcategory`);
     } catch (error) {
       console.error("Error fetching subcategory items:", error);
     }
@@ -96,12 +88,10 @@ export default async function CategoryPage({
     description = `All items in the ${category.replace(/_/g, " ")} category`;
     
     try {
-      console.log(`Executing category query for: ${category}`);
       // Use raw SQL to avoid type issues
       const result = await db.execute(sql`
         SELECT * FROM inventory_items WHERE category = ${category}
       `);
-      console.log("Raw query result:", result.rows);
       
       // Map the raw results to our InventoryItem interface
       items = result.rows.map(row => ({
@@ -115,7 +105,6 @@ export default async function CategoryPage({
         minimumStockLevel: row.minimum_stock_level ? Number(row.minimum_stock_level) : null
       }));
       
-      console.log(`Found ${items.length} items in category`);
     } catch (error) {
       console.error("Error fetching category items:", error);
     }
@@ -124,21 +113,18 @@ export default async function CategoryPage({
   // Get subcategories for this category
   let subcategories: Subcategory[] = [];
   try {
-    console.log(`Fetching subcategories for: ${category}`);
     const result = await db.execute(sql`
       SELECT DISTINCT subcategory FROM inventory_items WHERE category = ${category}
     `);
     subcategories = result.rows.map(row => ({
       subcategory: row.subcategory ? String(row.subcategory) : null
     }));
-    console.log("Subcategories:", subcategories);
   } catch (error) {
     console.error("Error fetching subcategories:", error);
   }
   
   // Only return 404 if we're not filtering and there are no items
   if (items.length === 0 && !subcategory && !filter) {
-    console.log("No items found, returning 404");
     // Instead of returning 404, let's show an empty state
     // notFound();
   }

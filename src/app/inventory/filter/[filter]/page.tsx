@@ -55,7 +55,6 @@ export default async function FilterPage({
     const sevenDaysFromNow = addDays(new Date(), 7).toISOString().split('T')[0];
     
     try {
-      console.log("Executing expiring query");
       const result = await db.execute(sql`
         SELECT * FROM inventory_items 
         WHERE expiry_date <= ${sevenDaysFromNow} 
@@ -89,7 +88,6 @@ export default async function FilterPage({
         expiryStatus: row.expiry_status ? String(row.expiry_status) : null
       }));
       
-      console.log(`Found ${items.length} expiring items`);
     } catch (error) {
       console.error("Error fetching expiring items:", error);
     }
@@ -98,7 +96,6 @@ export default async function FilterPage({
     description = "Items that are below their minimum stock level";
     
     try {
-      console.log("Executing low-stock query");
       const result = await db.execute(sql`
         SELECT * FROM inventory_items 
         WHERE quantity <= minimum_stock_level 
@@ -132,7 +129,6 @@ export default async function FilterPage({
         expiryStatus: row.expiry_status ? String(row.expiry_status) : null
       }));
       
-      console.log(`Found ${items.length} low stock items`);
     } catch (error) {
       console.error("Error fetching low stock items:", error);
     }
@@ -141,7 +137,6 @@ export default async function FilterPage({
     description = "Items that need to be reordered";
     
     try {
-      console.log("Executing needs-ordering query");
       const result = await db.execute(sql`
         SELECT * FROM inventory_items 
         WHERE quantity <= minimum_stock_level 
@@ -176,7 +171,6 @@ export default async function FilterPage({
         expiryStatus: row.expiry_status ? String(row.expiry_status) : null
       }));
       
-      console.log(`Found ${items.length} items needing reorder`);
     } catch (error) {
       console.error("Error fetching items needing reorder:", error);
     }
