@@ -6,6 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardCard } from "@/components/inventory/dashboard-card";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import { SearchInventory } from "@/components/inventory/search-inventory";
+import { PageHeader } from "@/components/ui/page-header";
+import { AddItemAction, DailyUpdatesAction } from "@/components/action-buttons";
 
 // Loading component for Suspense
 function InventoryStatsLoading() {
@@ -106,12 +108,14 @@ async function InventoryStats() {
 export default function InventoryPage() {
   return (
     <div className="container py-8 space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Inventory Dashboard</h2>
-        <p className="text-muted-foreground">
-          Manage and monitor your inventory across all categories
-        </p>
-      </div>
+      <PageHeader
+        title="Inventory Dashboard"
+        description="Manage and monitor your inventory across all categories"
+        breadcrumbs={[
+          { label: "Inventory" }
+        ]}
+        actions={[AddItemAction, DailyUpdatesAction]}
+      />
       
       <Suspense fallback={<InventoryStatsLoading />}>
         <InventoryStats />

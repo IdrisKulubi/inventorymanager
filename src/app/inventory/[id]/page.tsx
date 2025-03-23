@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import db from "@/db/drizzle";
-import { inventoryItems, inventoryLogs } from "@/db/schema";
+  import { InventoryItem, inventoryItems } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -11,8 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { DailyCountForm } from "@/components/inventory/daily-count-form";
 import { InventoryLogs } from "@/components/inventory/inventory-logs";
-import { ArrowLeft } from "lucide-react";
+import { Calendar, Pencil, PackageCheck, Plus } from "lucide-react";
 import { getItemLogs } from "@/lib/actions/logs";
+import { PageHeader } from "@/components/ui/page-header";
+import { AddItemDialog } from "@/components/inventory/add-item-dialog";
 
 interface ItemPageProps {
   params: { id: string };
@@ -43,34 +45,47 @@ export default async function ItemPage({ params, searchParams }: ItemPageProps) 
   const activeTab = searchParams.tab || "details";
   
   return (
-    <div className="container py-8">
-      <div className="mb-6">
-        <Button variant="ghost" asChild className="mb-4">
-          <Link href="/inventory">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Inventory
-          </Link>
-        </Button>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              {item.itemName}
-              {getStockStatusBadge(item)}
-            </h1>
-            <p className="text-muted-foreground">
-              {item.category.replace(/_/g, ' ')} › {item.subcategory?.replace(/_/g, ' ')}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline">
-              <Link href={`/inventory/daily-updates`}>Daily Updates</Link>
-            </Button>
-            <Button asChild>
-              <Link href={`/inventory/${itemId}/edit`}>Edit Item</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
+    <div className="container py-8 pb-24">
+      <PageHeader
+        title={item.itemName}
+        description={`${item.category.replace(/_/g, ' ')} › ${item.subcategory?.replace(/_/g, ' ')}`}
+        breadcrumbs={[
+          { label: "Inventory", href: "/inventory" },
+          { label: item.itemName }
+        ]}
+        backLink={{
+          label: "Back to Inventory",
+          href: "/inventory"
+        }}
+        actions={[
+          {
+            label: "Edit Item",
+            href: `/inventory/${itemId}/edit`,
+            icon: <Pencil className="mr-2 h-4 w-4" />,
+          },
+          {
+            label: "Daily Updates",
+            href: `/inventory/daily-updates`,
+            icon: <Calendar className="mr-2 h-4 w-4" />,
+            variant: "outline",
+          },
+          {
+            component: (
+              <AddItemDialog 
+                variant="outline" 
+                trigger={
+                  <Button size="sm" variant="outline">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Item
+                  </Button>
+                }
+              />
+            )
+          }
+        ]}
+      >
+        {getStockStatusBadge(item)}
+      </PageHeader>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1">
@@ -88,11 +103,11 @@ export default async function ItemPage({ params, searchParams }: ItemPageProps) 
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Stock Value</h3>
               <p className="text-2xl font-bold">
-                ${(item.stockValue ? item.stockValue / 100 : 0).toFixed(2)}
+                Ksh{(item.stockValue ? item.stockValue / 100 : 0).toFixed(2)}
               </p>
               {item.cost && (
                 <p className="text-sm text-muted-foreground">
-                  ${(item.cost / 100).toFixed(2)} per {item.unit}
+                  Ksh{(item.cost / 100).toFixed(2)} per {item.unit}
                 </p>
               )}
             </div>
@@ -230,7 +245,7 @@ export default async function ItemPage({ params, searchParams }: ItemPageProps) 
             </TabsContent>
             
             <TabsContent value="history" className="mt-4">
-              <InventoryLogs logs={logs} />
+              <InventoryLogs logs={logs ?? []} />
             </TabsContent>
             
             <TabsContent value="count" className="mt-4">
@@ -244,30 +259,67 @@ export default async function ItemPage({ params, searchParams }: ItemPageProps) 
           </Tabs>
         </div>
       </div>
+      
+      {/* Sticky action bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-md border-t p-4 shadow-lg">
+        <div className="container flex justify-center md:justify-end gap-2">
+          <Button 
+            variant="outline"
+            size="lg"
+            asChild
+          >
+            <Link href={`/inventory/${itemId}/edit`}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Item
+            </Link>
+          </Button>
+          <Button 
+            size="lg"
+            asChild
+          >
+            <Link href={`/inventory/${itemId}?tab=count`}>
+              <PackageCheck className="mr-2 h-4 w-4" />
+              Update Count
+            </Link>
+          </Button>
+          <AddItemDialog 
+            variant="outline"
+            trigger={
+              <Button variant="outline" size="lg">
+                <Plus className="mr-2 h-4 w-4" />
+                Add New Item
+              </Button>
+            }
+          />
+        </div>
+      </div>
     </div>
   );
 }
 
-function getStockStatusBadge(item: any) {
-  // Check for expiry
-  if (item.expiryDate) {
-    const today = new Date();
-    const expiryDate = new Date(item.expiryDate);
-    const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (daysUntilExpiry < 0) {
-      return <Badge variant="destructive">Expired</Badge>;
-    }
-    
-    if (daysUntilExpiry <= 7) {
-      return <Badge variant="warning">Expiring Soon</Badge>;
-    }
+function getStockStatusBadge(item: InventoryItem) {
+  // Check if item is expired
+  if (item.expiryDate && new Date(item.expiryDate) < new Date()) {
+    return <Badge variant="destructive">Expired</Badge>;
   }
   
-  // Check for low stock
-  if (item.minimumStockLevel && item.quantity <= item.minimumStockLevel) {
+  // Check if item is expiring soon (within 7 days)
+  if (
+    item.expiryDate && 
+    new Date(item.expiryDate) > new Date() && 
+    new Date(item.expiryDate) < new Date(new Date().setDate(new Date().getDate() + 7))
+  ) {
+    return <Badge variant="warning">Expiring Soon</Badge>;
+  }
+  
+  // Check if item is below minimum stock level
+  if (
+    item.minimumStockLevel !== null && 
+    item.minimumStockLevel !== undefined && 
+    item.quantity <= item.minimumStockLevel
+  ) {
     return <Badge variant="destructive">Low Stock</Badge>;
   }
   
-  return <Badge variant="success">In Stock</Badge>;
+  return null;
 } 

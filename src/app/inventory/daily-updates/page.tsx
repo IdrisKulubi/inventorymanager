@@ -5,11 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getDailyLogsSummary } from "@/lib/actions/logs";
 import { getInventoryItems } from "@/lib/actions/inventory";
 import { format } from "date-fns";
-
+import { PageHeader } from "@/components/ui/page-header";
+import { AddItemAction } from "@/components/action-buttons";
 import Link from "next/link";
 import { VarianceReport } from "@/components/inventory/variance-report";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
   title: "Daily Inventory Updates",
@@ -24,7 +24,7 @@ async function DailySummaryCard() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Today&pos;s Activity</CardTitle>
+          <CardTitle>Today&apos;s Activity</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-red-500">Error loading data</p>
@@ -148,18 +148,19 @@ async function CategoryCountsGrid({ category }: { category: string }) {
 export default function DailyUpdatesPage() {
   return (
     <div className="container py-8">
-      <div className="mb-6">
-        <Button variant="ghost" asChild className="mb-4">
-          <Link href="/inventory">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Inventory
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-bold tracking-tight">Daily Inventory Updates</h1>
-        <p className="text-muted-foreground">
-          Track daily counts, view stock history, and generate variance reports
-        </p>
-      </div>
+      <PageHeader
+        title="Daily Inventory Updates"
+        description="Track daily counts, view stock history, and generate variance reports"
+        breadcrumbs={[
+          { label: "Inventory", href: "/inventory" },
+          { label: "Daily Updates" },
+        ]}
+        actions={[AddItemAction]}
+        backLink={{
+          label: "Back to Inventory",
+          href: "/inventory"
+        }}
+      />
       
       <div className="space-y-6">
         <Suspense fallback={<Skeleton className="h-[200px] w-full" />}>

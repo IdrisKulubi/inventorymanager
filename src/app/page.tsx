@@ -3,7 +3,8 @@ import { inventoryItems } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import { addDays } from "date-fns";
 import { DashboardCard } from "@/components/inventory/dashboard-card";
-
+import { PageHeader } from "@/components/ui/page-header";
+import { AddItemAction, DailyUpdatesAction } from "@/components/action-buttons";
 
 export default async function Home() {
   // Get total items
@@ -67,13 +68,12 @@ export default async function Home() {
   .where(sql`category = 'fixed_assets'`);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
-        <p className="text-muted-foreground">
-          Overview of your inventory status
-        </p>
-      </div>
+    <div className="space-y-8 py-8">
+      <PageHeader
+        title="Dashboard"
+        description="Overview of your inventory status"
+        actions={[AddItemAction, DailyUpdatesAction]}
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <DashboardCard
@@ -85,7 +85,7 @@ export default async function Home() {
         />
         <DashboardCard
           title="Total Value"
-          value={`$${(totalValue[0].value || 0).toLocaleString()}`}
+          value={`Ksh${(totalValue[0].value || 0).toLocaleString()}`}
           description="Current inventory value"
           icon="💰"
         />

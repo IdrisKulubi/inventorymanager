@@ -20,19 +20,51 @@ import {
   EXPIRY_STATUS_OPTIONS,
   EXPIRY_STATUS_DISPLAY_NAMES
 } from "@/lib/constants";
-import type { InventoryItem } from "@/db/schema";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRouter } from "next/navigation";
+
+// Interface that can accept both InventoryItem from the database and the ExtendedInventoryItem type
+interface EditableInventoryItem {
+  id: number;
+  itemName: string;
+  category: string;
+  subcategory?: string | null;
+  quantity: number;
+  unit: string;
+  brand?: string | null;
+  stockValue?: number | null;
+  expiryDate?: string | null;
+  minimumStockLevel?: number | null;
+  orderQuantity?: number | null;
+  isFixedAsset?: boolean | null;
+  assetLocation?: string | null;
+  supplierName?: string | null;
+  supplierContact?: string | null;
+  supplierEmail?: string | null;
+  supplierPhone?: string | null;
+  cost?: number | null;
+  createdAt?: Date | null;
+  purchaseDate: Date | string;
+  shelfLifeValue?: number | null;
+  shelfLifeUnit?: string | null;
+  expiryStatus?: string | null;
+}
+
+interface EditInventoryFormProps { 
+  item: EditableInventoryItem;
+  returnUrl?: string;
+  onSuccess?: () => void; // Make this optional
+}
 
 export function EditInventoryForm({ 
   item,
+  returnUrl,
   onSuccess
-}: { 
-  item: InventoryItem;
-  onSuccess: () => void;
-}) {
+}: EditInventoryFormProps) {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string>(item.category);
   const [availableSubcategories, setAvailableSubcategories] = useState<readonly string[]>(
     INVENTORY_SUBCATEGORIES[item.category] || []
@@ -53,8 +85,8 @@ export function EditInventoryForm({
       isFixedAsset: item.isFixedAsset || false,
       assetLocation: item.assetLocation ?? "",
       shelfLifeValue: item.shelfLifeValue ?? 7,
-      shelfLifeUnit: item.shelfLifeUnit ?? 'days',
-      expiryStatus: item.expiryStatus ?? 'valid',
+      shelfLifeUnit: (item.shelfLifeUnit as "days" | "weeks" | "months" | "years") ?? "days",
+      expiryStatus: (item.expiryStatus as "valid" | "expiring_soon" | "expired") ?? "valid", 
       orderQuantity: item.orderQuantity ?? 0,
       cost: item.cost ?? 0,
       supplierName: item.supplierName ?? "",
@@ -80,12 +112,19 @@ export function EditInventoryForm({
       form.setValue('expiryStatus', undefined);
     } else if (!form.getValues('shelfLifeValue')) {
       form.setValue('shelfLifeValue', 7);
-      form.setValue('shelfLifeUnit', 'days');
-      form.setValue('expiryStatus', 'valid');
+      form.setValue('shelfLifeUnit', 'days' as const);
+      form.setValue('expiryStatus', 'valid' as const);
     }
   }, [isFixedAsset, form]);
 
   useEffect(() => {
+    // Format purchaseDate properly if it's a Date object
+    const purchaseDate = item.purchaseDate instanceof Date 
+      ? item.purchaseDate.toISOString().split('T')[0]
+      : typeof item.purchaseDate === 'string'
+        ? new Date(item.purchaseDate).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0];
+    
     // Reset form when item changes
     const resetValues = {
       category: item.category as typeof INVENTORY_CATEGORIES[number],
@@ -94,7 +133,7 @@ export function EditInventoryForm({
       brand: item.brand || "",
       quantity: item.quantity,
       unit: item.unit as typeof INVENTORY_UNITS[number],
-      purchaseDate: new Date(item.purchaseDate).toISOString().split('T')[0],
+      purchaseDate: purchaseDate,
       supplierContact: item.supplierContact || "",
       supplierEmail: item.supplierEmail || "",
       supplierPhone: item.supplierPhone || "",
@@ -103,8 +142,8 @@ export function EditInventoryForm({
       isFixedAsset: Boolean(item.isFixedAsset),
       assetLocation: item.assetLocation ?? "",
       shelfLifeValue: item.shelfLifeValue ?? 7,
-      shelfLifeUnit: item.shelfLifeUnit ?? 'days',
-      expiryStatus: item.expiryStatus ?? 'valid',
+      shelfLifeUnit: (item.shelfLifeUnit as "days" | "weeks" | "months" | "years") ?? 'days',
+      expiryStatus: (item.expiryStatus as "valid" | "expiring_soon" | "expired") ?? 'valid',
       orderQuantity: item.orderQuantity ?? 0,
     };
 
@@ -122,8 +161,11 @@ export function EditInventoryForm({
         ...resetValues,
         isFixedAsset: false,
         shelfLifeValue: resetValues.shelfLifeValue || 7,
-        shelfLifeUnit: resetValues.shelfLifeUnit || 'days',
-        expiryStatus: resetValues.expiryStatus || 'valid',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        shelfLifeUnit: (resetValues.shelfLifeUnit as any) || 'days',
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expiryStatus: (resetValues.expiryStatus as any) || 'valid',
       });
     }
   }, [item, form, isFixedAsset]);
@@ -164,7 +206,13 @@ export function EditInventoryForm({
 
       if (result.success) {
         toast.success("Item updated successfully");
-        onSuccess();
+        
+        // Handle navigation based on what was provided
+        if (onSuccess) {
+          onSuccess();
+        } else if (returnUrl) {
+          router.push(returnUrl);
+        }
       } else {
         toast.error("Failed to update item", {
           description: result.error

@@ -1,11 +1,10 @@
 import { Suspense } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InventoryTurnoverView } from "@/components/analytics/inventory-turnover";
+import { PageHeader } from "@/components/ui/page-header";
+import { AddItemAction } from "@/components/action-buttons";
 
 export const metadata = {
   title: "Inventory Analytics",
@@ -15,18 +14,18 @@ export const metadata = {
 export default function AnalyticsPage() {
   return (
     <div className="container py-8">
-      <div className="mb-6">
-        <Button variant="ghost" asChild className="mb-4">
-          <Link href="/">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-bold tracking-tight">Inventory Analytics</h1>
-        <p className="text-muted-foreground">
-          Get insights into inventory performance, usage patterns, and costs
-        </p>
-      </div>
+      <PageHeader
+        title="Inventory Analytics"
+        description="Get insights into inventory performance, usage patterns, and costs"
+        breadcrumbs={[
+          { label: "Analytics" }
+        ]}
+        backLink={{
+          label: "Back to Dashboard",
+          href: "/"
+        }}
+        actions={[AddItemAction]}
+      />
       
       <div className="space-y-6">
         <Tabs defaultValue="turnover" className="w-full">
