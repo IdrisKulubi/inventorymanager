@@ -10,6 +10,15 @@ import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 import { getInventoryTurnover } from '@/lib/actions/logs';
 
+interface RawTurnoverItem {
+  id: number;
+  item_name: string;
+  category: string;
+  total_consumed: string | number;
+  average_inventory: string | number;
+  turnover_rate: string | number;
+}
+
 interface TurnoverItem {
   id: number;
   item_name: string;
@@ -31,7 +40,14 @@ export function InventoryTurnoverView() {
       try {
         const result = await getInventoryTurnover(period);
         if (result.success && result.turnoverData) {
-          setData(result.turnoverData as unknown as TurnoverItem[]);
+          // Ensure all numeric values are properly converted
+          const processedData = (result.turnoverData as RawTurnoverItem[]).map(item => ({
+            ...item,
+            total_consumed: Number(item.total_consumed) || 0,
+            average_inventory: Number(item.average_inventory) || 0,
+            turnover_rate: Number(item.turnover_rate) || 0
+          }));
+          setData(processedData);
           setError(null);
         } else {
           setError('Error loading turnover data');
@@ -243,8 +259,16 @@ export function InventoryTurnoverView() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">{item.total_consumed}</TableCell>
-                        <TableCell className="text-right">{item.average_inventory.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">{item.turnover_rate.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">
+                          {typeof item.average_inventory === 'number' 
+                            ? item.average_inventory.toFixed(2) 
+                            : '0.00'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {typeof item.turnover_rate === 'number' 
+                            ? item.turnover_rate.toFixed(2) 
+                            : '0.00'}
+                        </TableCell>
                         <TableCell>
                           <Badge className={rating.color}>
                             {rating.label}

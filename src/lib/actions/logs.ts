@@ -267,99 +267,89 @@ export async function getVarianceReport(startDate: Date, endDate: Date, category
   }
 }
 
-// Get statistics for analytics
-export async function getInventoryTurnover(period: 'month' | 'quarter' | 'year' = 'month') {
+// Get inventory turnover data
+export async function getInventoryTurnover(period: 'month' | 'quarter' | 'year') {
   try {
-    // Calculate start date based on period
+    // Calculate the start date based on the period
     const now = new Date();
-    let startDate: Date;
+    let startDate = new Date();
     
     switch (period) {
       case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+        startDate.setMonth(now.getMonth() - 1);
         break;
       case 'quarter':
-        startDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+        startDate.setMonth(now.getMonth() - 3);
         break;
       case 'year':
-        startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+        startDate.setFullYear(now.getFullYear() - 1);
         break;
     }
     
+    // Format dates for SQL query
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = now.toISOString().split('T')[0];
     
-    // Query for turnover rate (items removed / average inventory)
-    const turnoverData = await db.execute(
-      sql`WITH daily_inventory AS (
-            SELECT 
-              il.item_id,
-              il.date_stamp,
-              LAST_VALUE(il.quantity_after) OVER (
-                PARTITION BY il.item_id, il.date_stamp 
-                ORDER BY il.timestamp
-                RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-              ) as end_day_quantity
-            FROM 
-              inventory_logs il
-            WHERE 
-              il.date_stamp BETWEEN ${startDateStr} AND ${endDateStr}
-            GROUP BY 
-              il.item_id, il.date_stamp, il.timestamp, il.quantity_after
-          ),
-          item_averages AS (
-            SELECT 
-              item_id,
-              AVG(end_day_quantity) as avg_inventory
-            FROM 
-              daily_inventory
-            GROUP BY 
-              item_id
-          ),
-          item_usage AS (
-            SELECT 
-              il.item_id,
-              SUM(CASE WHEN il.action = 'stock_removed' THEN il.quantity_before - il.quantity_after ELSE 0 END) as total_removed
-            FROM 
-              inventory_logs il
-            WHERE 
-              il.date_stamp BETWEEN ${startDateStr} AND ${endDateStr}
-            GROUP BY 
-              il.item_id
-          )
-          SELECT 
-            i.id,
-            i.item_name,
-            i.category,
-            COALESCE(iu.total_removed, 0) as total_consumed,
-            COALESCE(ia.avg_inventory, 0) as average_inventory,
-            CASE 
-              WHEN COALESCE(ia.avg_inventory, 0) > 0 
-              THEN COALESCE(iu.total_removed, 0) / COALESCE(ia.avg_inventory, 1) 
+    // Query to calculate inventory turnover
+    const turnoverData = await db.execute(sql`
+      WITH daily_inventory AS (
+        SELECT 
+          i.id,
+          i.item_name,
+          i.category,
+          i.quantity as current_quantity,
+          COALESCE(
+            SUM(CASE 
+              WHEN il.action = 'stock_removed' THEN il.quantity_before - il.quantity_after
               ELSE 0 
-            END as turnover_rate
-          FROM 
-            inventory_items i
-          LEFT JOIN 
-            item_averages ia ON i.id = ia.item_id
-          LEFT JOIN 
-            item_usage iu ON i.id = iu.item_id
-          WHERE
-            COALESCE(iu.total_removed, 0) > 0
-          ORDER BY 
-            turnover_rate DESC`
-    );
+            END),
+            0
+          ) as total_consumed,
+          COALESCE(
+            AVG(i.quantity),
+            0
+          ) as average_inventory
+        FROM 
+          inventory_items i
+        LEFT JOIN 
+          inventory_logs il ON i.id = il.item_id 
+          AND il.date_stamp BETWEEN ${startDateStr} AND ${endDateStr}
+        GROUP BY 
+          i.id, i.item_name, i.category, i.quantity
+      )
+      SELECT 
+        id,
+        item_name,
+        category,
+        total_consumed,
+        average_inventory,
+        CASE 
+          WHEN average_inventory > 0 THEN total_consumed / average_inventory
+          ELSE 0
+        END as turnover_rate
+      FROM 
+        daily_inventory
+      ORDER BY 
+        turnover_rate DESC
+    `);
+    
+    // Process the results to ensure proper number formatting
+    const processedData = turnoverData.rows.map(row => ({
+      ...row,
+      total_consumed: Number(row.total_consumed) || 0,
+      average_inventory: Number(row.average_inventory) || 0,
+      turnover_rate: Number(row.turnover_rate) || 0
+    }));
     
     return {
       success: true,
-      turnoverData: turnoverData.rows,
-      period,
-      startDate: startDateStr,
-      endDate: endDateStr
+      turnoverData: processedData
     };
-    
   } catch (error) {
     console.error('Error getting inventory turnover:', error);
-    return { success: false, error };
+    return {
+      success: false,
+      error
+    };
   }
 } 
