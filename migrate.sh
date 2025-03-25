@@ -1,17 +1,23 @@
 #!/bin/bash
 
-# Exit on error
-set -e
+# Colors for better output
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
 
-echo "Starting inventory management system migration..."
+echo -e "${GREEN}Starting database migration...${NC}"
 
-# Step 1: Apply database migrations
-echo "Step 1: Applying database migrations..."
+# Run drizzle-kit generate to create migration files
+echo "Generating migration files..."
+npx drizzle-kit generate:pg
+
+# Run drizzle-kit push to apply migrations
+echo "Applying migrations to database..."
 npx drizzle-kit push:pg
 
-# Step 2: Update existing data
-echo "Step 2: Updating existing data..."
-npx tsx src/scripts/update-inventory-data.ts
+# Run the SQL files in the drizzle directory
+echo "Running SQL scripts..."
+psql "$DATABASE_URL" -f "./drizzle/0000_dear_vermin.sql"
+psql "$DATABASE_URL" -f "./drizzle/0001_add_selling_price.sql"
 
-echo "Migration completed successfully!"
-echo "You can now start the application with 'npm run dev'" 
+echo -e "${GREEN}Migration completed successfully!${NC}" 

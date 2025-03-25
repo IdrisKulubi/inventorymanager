@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -51,6 +51,7 @@ interface EditableInventoryItem {
   shelfLifeValue?: number | null;
   shelfLifeUnit?: string | null;
   expiryStatus?: string | null;
+  sellingPrice?: number | null;
 }
 
 interface EditInventoryFormProps { 
@@ -71,26 +72,32 @@ export function EditInventoryForm({
   );
   const [isFixedAsset, setIsFixedAsset] = useState(item.isFixedAsset || false);
 
+  const defaultValues = useMemo(() => ({
+    category: item?.category || INVENTORY_CATEGORIES[0],
+    subcategory: item?.subcategory || INVENTORY_SUBCATEGORIES[INVENTORY_CATEGORIES[0]][0],
+    itemName: item?.itemName || "",
+    brand: item?.brand || "",
+    quantity: item?.quantity || 1,
+    orderQuantity: item?.orderQuantity || 0,
+    unit: item?.unit || INVENTORY_UNITS[0],
+    purchaseDate: item?.purchaseDate ? new Date(item.purchaseDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    shelfLifeValue: item?.shelfLifeValue || 7,
+    shelfLifeUnit: item?.shelfLifeUnit || 'days',
+    expiryStatus: item?.expiryStatus || 'valid',
+    supplierEmail: item?.supplierEmail || "",
+    supplierPhone: item?.supplierPhone || "",
+    supplierContact: item?.supplierContact || "",
+    cost: item?.cost || 0,
+    sellingPrice: item?.sellingPrice || 0,
+    supplierName: item?.supplierName || "",
+    isFixedAsset: item?.isFixedAsset || false,
+    assetLocation: item?.assetLocation || "",
+    minimumStockLevel: item?.minimumStockLevel || 0,
+  }), [item]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      ...item,
-      category: item.category as typeof INVENTORY_CATEGORIES[number],
-      subcategory: item.subcategory || INVENTORY_SUBCATEGORIES[item.category][0],
-      unit: item.unit as typeof INVENTORY_UNITS[number],
-      purchaseDate: new Date(item.purchaseDate).toISOString().split('T')[0],
-      supplierContact: item.supplierContact ?? "",
-      supplierEmail: item.supplierEmail ?? "",
-      supplierPhone: item.supplierPhone ?? "",
-      isFixedAsset: item.isFixedAsset || false,
-      assetLocation: item.assetLocation ?? "",
-      shelfLifeValue: item.shelfLifeValue ?? 7,
-      shelfLifeUnit: (item.shelfLifeUnit as "days" | "weeks" | "months" | "years") ?? "days",
-      expiryStatus: (item.expiryStatus as "valid" | "expiring_soon" | "expired") ?? "valid", 
-      orderQuantity: item.orderQuantity ?? 0,
-      cost: item.cost ?? 0,
-      supplierName: item.supplierName ?? "",
-    }
+    defaultValues: defaultValues
   });
 
   // Update subcategories when category changes
@@ -475,6 +482,25 @@ export function EditInventoryForm({
 
               <FormField
                 control={form.control}
+                name="sellingPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Selling Price</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="Enter selling price" 
+                        {...field}
+                        onChange={e => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="supplierName"
                 render={({ field }) => (
                   <FormItem>
@@ -735,6 +761,25 @@ export function EditInventoryForm({
                       <Input 
                         type="number" 
                         placeholder="Enter cost" 
+                        {...field}
+                        onChange={e => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="sellingPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Selling Price</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="Enter selling price" 
                         {...field}
                         onChange={e => field.onChange(Number(e.target.value))}
                       />

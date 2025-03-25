@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import db from "@/db/drizzle";
-  import { InventoryItem, inventoryItems } from "@/db/schema";
+import { InventoryItem, inventoryItems } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -22,7 +22,11 @@ interface ItemPageProps {
 }
 
 export default async function ItemPage({ params, searchParams }: ItemPageProps) {
-  const itemId = parseInt(params.id);
+  // Properly await both params and searchParams
+  const awaitedParams = await params;
+  const awaitedSearchParams = await searchParams;
+  
+  const itemId = parseInt(awaitedParams.id);
   
   if (isNaN(itemId)) {
     notFound();
@@ -42,7 +46,7 @@ export default async function ItemPage({ params, searchParams }: ItemPageProps) 
   const logs = logsResult.success ? logsResult.logs : [];
   
   // Set the active tab based on search params or default to "details"
-  const activeTab = searchParams.tab || "details";
+  const activeTab = awaitedSearchParams.tab || "details";
   
   return (
     <div className="container py-8 pb-24">

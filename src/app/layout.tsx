@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "The Chocolate Room",
-  description: "Inventory Management System",
+  title: "Bakery Inventory",
+  description: "Bakery Inventory Management System",
 };
 
 export default function RootLayout({

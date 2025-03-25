@@ -7,10 +7,11 @@ import { Search } from "lucide-react";
 
 interface SearchInventoryProps {
   category?: string;
+  subcategory?: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function SearchInventory({ category }: SearchInventoryProps) {
+export function SearchInventory({ category, subcategory }: SearchInventoryProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
@@ -25,7 +26,18 @@ export function SearchInventory({ category }: SearchInventoryProps) {
       params.delete("search");
     }
     
-    router.push(`/inventory?${params.toString()}`);
+    // Handle different routing based on category or subcategory
+    if (subcategory) {
+      // If subcategory is specified, add it to the URL
+      params.set("subcategory", subcategory);
+      router.push(`/inventory?${params.toString()}`);
+    } else if (category) {
+      // If category is specified, use the category route
+      router.push(`/inventory/category/${category}?${params.toString()}`);
+    } else {
+      // Default inventory route with search
+      router.push(`/inventory?${params.toString()}`);
+    }
   };
   
   return (

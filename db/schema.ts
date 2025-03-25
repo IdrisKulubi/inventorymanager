@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, date, timestamp, pgEnum, boolean, foreignKey } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, date, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
 
 // Define enums for categories and subcategories
 export const inventoryCategoryEnum = pgEnum('inventory_category', [
@@ -68,6 +68,7 @@ export const inventoryItems = pgTable("inventory_items", {
   supplierPhone: text("supplier_phone"),
   supplierContact: text("supplier_contact"),
   cost: integer("cost"),
+  sellingPrice: integer("selling_price"),
   supplierName: text("supplier_name"),
   isFixedAsset: boolean("is_fixed_asset").default(false),
   assetLocation: text("asset_location"),

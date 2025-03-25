@@ -15,6 +15,7 @@ import { AddItemDialog } from "@/components/inventory/add-item-dialog";
 const navLinks = [
   { name: "Dashboard", href: "/" },
   { name: "Inventory", href: "/inventory" },
+  { name: "Bakery", href: "/inventory/subcategory/bakery" },
   { name: "Daily Updates", href: "/inventory/daily-updates" },
   { name: "Analytics", href: "/analytics" },
 ];
@@ -28,7 +29,7 @@ export function Navbar() {
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2">
             <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-amber-700 via-amber-500 to-amber-800 bg-clip-text text-transparent dark:from-amber-200 dark:via-amber-400 dark:to-amber-300">
-              The Chocolate Room
+              Bakery Inventory
             </h1>
           </Link>
           

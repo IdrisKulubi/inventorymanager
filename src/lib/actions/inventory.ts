@@ -149,6 +149,9 @@ export async function getInventoryStats() {
     const beerRoomItems = items.filter(item => item.category === 'beer_room' && !item.isFixedAsset).length;
     const kitchenItems = items.filter(item => item.category === 'kitchen' && !item.isFixedAsset).length;
     const fixedAssets = items.filter(item => item.isFixedAsset).length;
+    
+    // Count bakery items
+    const bakeryItems = items.filter(item => item.subcategory === 'bakery').length;
 
     // Count items by expiry status
     const expiredItems = items.filter(item => item.expiryStatus === 'expired').length;
@@ -168,6 +171,9 @@ export async function getInventoryStats() {
         beerRoom: beerRoomItems,
         kitchen: kitchenItems,
         fixedAssets: fixedAssets
+      },
+      subcategoryBreakdown: {
+        bakery: bakeryItems
       },
       expiryDistribution: Array(7).fill(0).map((_, i) => {
         const date = new Date(now);
@@ -200,7 +206,43 @@ export async function getInventoryStats() {
         kitchen: 0,
         fixedAssets: 0
       },
+      subcategoryBreakdown: {
+        bakery: 0
+      },
       expiryDistribution: []
     };
+  }
+}
+
+export async function getInventoryItemsBySubcategory(subcategory?: string, search?: string) {
+  try {
+    let query = db.select().from(inventoryItems);
+    
+    if (subcategory) {
+      query = query.where(eq(inventoryItems.subcategory, subcategory));
+    }
+    
+    if (search) {
+      query = query.where(
+        or(
+          sql`${inventoryItems.itemName} ILIKE ${`%${search}%`}`,
+          sql`${inventoryItems.brand} ILIKE ${`%${search}%`}`,
+          sql`${inventoryItems.subcategory} ILIKE ${`%${search}%`}`
+        )
+      );
+    }
+
+    // Order by expiry date for consumables, and by name for fixed assets
+    query = query.orderBy(
+      sql`CASE WHEN ${inventoryItems.isFixedAsset} = true THEN 1 ELSE 0 END`,
+      sql`CASE WHEN ${inventoryItems.expiryDate} IS NULL THEN 1 ELSE 0 END`,
+      inventoryItems.expiryDate,
+      inventoryItems.itemName
+    );
+
+    return await query;
+  } catch (error) {
+    console.error("Error fetching inventory items by subcategory:", error);
+    return [];
   }
 } 

@@ -38,9 +38,13 @@ export default async function CategoryPage({
   params: { category: string };
   searchParams: { filter?: string; subcategory?: string };
 }) {
- 
-  const { category } = params;
-  const { filter, subcategory } = searchParams;
+  // Properly await both params and searchParams
+  const awaitedParams = await params;
+  const awaitedSearchParams = await searchParams;
+  
+  const category = awaitedParams.category;
+  const filter = awaitedSearchParams.filter;
+  const subcategory = awaitedSearchParams.subcategory;
   
   let title = "";
   let description = "";

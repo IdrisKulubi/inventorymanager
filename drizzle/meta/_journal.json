@@ -8,6 +8,13 @@
       "when": 1742679826944,
       "tag": "0000_dear_vermin",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1742848635260,
+      "tag": "0001_broken_sugar_man",
+      "breakpoints": true
     }
   ]
 }

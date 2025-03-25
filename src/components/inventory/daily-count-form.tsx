@@ -21,11 +21,22 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Define the reason options
+const REASON_OPTIONS = [
+  { value: 'sale', label: 'Sale' },
+  { value: 'waste', label: 'Waste/Expired' },
+  { value: 'count_adjustment', label: 'Count Adjustment' },
+  { value: 'stock_added', label: 'Stock Added' },
+  { value: 'other', label: 'Other' }
+] as const;
 
 // Define the form schema
 const countFormSchema = z.object({
   quantity: z.coerce.number().min(0, { message: 'Quantity must be 0 or greater' }),
   reason: z.string().min(1, { message: 'Reason is required' }),
+  customReason: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -40,6 +51,7 @@ interface DailyCountFormProps {
 
 export function DailyCountForm({ itemId, itemName, currentQuantity, unit }: DailyCountFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCustomReason, setShowCustomReason] = useState(false);
   const router = useRouter();
   
   // Initialize form with current values
@@ -47,7 +59,8 @@ export function DailyCountForm({ itemId, itemName, currentQuantity, unit }: Dail
     resolver: zodResolver(countFormSchema),
     defaultValues: {
       quantity: currentQuantity,
-      reason: 'Daily count',
+      reason: 'count_adjustment',
+      customReason: '',
       notes: '',
     },
   });
@@ -62,11 +75,16 @@ export function DailyCountForm({ itemId, itemName, currentQuantity, unit }: Dail
         return;
       }
       
+      // Use custom reason if "other" is selected
+      const effectiveReason = data.reason === 'other' && data.customReason 
+        ? data.customReason 
+        : data.reason;
+      
       // Update the inventory count with a log
       const result = await updateInventoryCountWithLog(
         itemId,
         data.quantity,
-        data.reason,
+        effectiveReason,
         data.notes,
         'Current User' // TODO: Replace with actual user name when auth is implemented
       );
@@ -133,13 +151,46 @@ export function DailyCountForm({ itemId, itemName, currentQuantity, unit }: Dail
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Reason</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Daily inventory count" />
-                  </FormControl>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      setShowCustomReason(value === 'other');
+                    }} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select reason" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {REASON_OPTIONS.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {showCustomReason && (
+              <FormField
+                control={form.control}
+                name="customReason"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Custom Reason</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Specify custom reason" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             
             <FormField
               control={form.control}

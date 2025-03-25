@@ -1,0 +1,1 @@
+ALTER TABLE "inventory_items" ADD COLUMN "selling_price" integer;

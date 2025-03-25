@@ -55,6 +55,7 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
       supplierPhone: "",
       supplierContact: "",
       cost: 0,
+      sellingPrice: 0,
       supplierName: "",
       isFixedAsset: false,
       assetLocation: ""
@@ -418,6 +419,25 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
 
                   <FormField
                     control={form.control}
+                    name="sellingPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Selling Price</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="Enter selling price" 
+                            {...field}
+                            onChange={e => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="supplierName"
                     render={({ field }) => (
                       <FormItem>
@@ -642,7 +662,11 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
                       <FormItem>
                         <FormLabel>Asset Location</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter asset location" {...field} />
+                          <Input 
+                            placeholder="Enter asset location" 
+                            {...field} 
+                            value={field.value || ""}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -673,6 +697,25 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
                           <Input 
                             type="number" 
                             placeholder="Enter cost" 
+                            {...field}
+                            onChange={e => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="sellingPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Selling Price</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="Enter selling price" 
                             {...field}
                             onChange={e => field.onChange(Number(e.target.value))}
                           />

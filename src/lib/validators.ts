@@ -44,6 +44,7 @@ export const consumableItemSchema = z.object({
         .optional(),
     supplierContact: z.string().optional(),
     cost: z.number().min(0, "Cost must be positive"),
+    sellingPrice: z.number().min(0, "Selling price must be positive").optional(),
     supplierName: z.string().min(1, "Supplier name is required"),
     isFixedAsset: z.literal(false),
     assetLocation: z.string().optional(),

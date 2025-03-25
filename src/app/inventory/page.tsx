@@ -13,7 +13,7 @@ import { AddItemAction, DailyUpdatesAction } from "@/components/action-buttons";
 function InventoryStatsLoading() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {Array(8).fill(0).map((_, i) => (
+      {Array(4).fill(0).map((_, i) => (
         <Card key={i}>
           <CardHeader className="pb-2">
             <Skeleton className="h-4 w-24" />
@@ -28,19 +28,22 @@ function InventoryStatsLoading() {
   );
 }
 
-// Stats component with server data fetching
+// Stats component with server data fetching - bakery only
 async function InventoryStats() {
   const stats = await getInventoryStats();
+  
+  // Extract bakery stats or set to 0 if unavailable
+  const bakeryItems = stats.subcategoryBreakdown?.bakery || 0;
   
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <DashboardCard
-          title="Total Items"
-          value={stats.totalItems}
-          description="Items in inventory"
-          icon="📦"
-          href="/inventory"
+          title="Total Bakery Items"
+          value={bakeryItems}
+          description="Items in bakery inventory"
+          icon="🥐"
+          href="/inventory/subcategory/bakery"
         />
         <DashboardCard
           title="Low Stock"
@@ -70,49 +73,40 @@ async function InventoryStats() {
 
       <div className="mt-8">
         <h3 className="text-lg font-medium mb-4">Categories</h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-1">
           <DashboardCard
-            title="Beer Room"
-            value={stats.categoryBreakdown.beerRoom}
-            description="Beer room items"
-            icon="🍺"
-            href="/inventory/category/beer_room"
+            title="Bakery"
+            value={bakeryItems}
+            description="Bakery items"
+            icon="🥐"
+            href="/inventory/subcategory/bakery"
           />
-          <DashboardCard
-            title="Chocolate Room"
-            value={stats.categoryBreakdown.chocolateRoom}
-            description="Chocolate room items"
-            icon="🍫"
-            href="/inventory/category/chocolate_room"
-          />
-          <DashboardCard
-            title="Kitchen"
-            value={stats.categoryBreakdown.kitchen}
-            description="Kitchen items"
-            icon="🍽️"
-            href="/inventory/category/kitchen"
-          />
-          <DashboardCard
-            title="Fixed Assets"
-            value={stats.categoryBreakdown.fixedAssets}
-            description="Fixed assets items"
-            icon="🏢"
-            href="/inventory/category/fixed_assets"
-          />
+          {/* Other categories removed to focus only on bakery */}
         </div>
       </div>
     </>
   );
 }
 
-export default function InventoryPage() {
+export default async function InventoryPage({
+  searchParams
+}: {
+  searchParams: { subcategory?: string }
+}) {
+  // Next.js 15 requires awaiting searchParams before use
+  await searchParams;
+  
+  // Always show bakery-focused content
+  const pageTitle = "Bakery Items";
+  const pageDescription = "Manage your bakery inventory";
+
   return (
     <div className="container py-8 space-y-8">
       <PageHeader
-        title="Inventory Dashboard"
-        description="Manage and monitor your inventory across all categories"
+        title={pageTitle}
+        description={pageDescription}
         breadcrumbs={[
-          { label: "Inventory" }
+          { label: "Inventory", href: "/inventory" }
         ]}
         actions={[AddItemAction, DailyUpdatesAction]}
       />
@@ -121,64 +115,53 @@ export default function InventoryPage() {
         <InventoryStats />
       </Suspense>
       
-      <Tabs defaultValue="all" className="mt-8">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="all">All Items</TabsTrigger>
-          <TabsTrigger value="beer_room">Beer Room</TabsTrigger>
-          <TabsTrigger value="chocolate_room">Chocolate Room</TabsTrigger>
-          <TabsTrigger value="kitchen">Kitchen</TabsTrigger>
-          <TabsTrigger value="fixed_assets">Fixed Assets</TabsTrigger>
+      <Tabs defaultValue="bakery" className="mt-8">
+        <TabsList className="grid w-full grid-cols-1">
+          <TabsTrigger value="bakery">Bakery</TabsTrigger>
         </TabsList>
         
-        {["all", "beer_room", "chocolate_room", "kitchen", "fixed_assets"].map((category) => (
-          <TabsContent key={category} value={category}>
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <CardTitle>{category === "all" ? "All Items" : 
-                      category.split("_").map(word => 
-                        word.charAt(0).toUpperCase() + word.slice(1)
-                      ).join(" ")
-                    }</CardTitle>
-                    <CardDescription>
-                      {category === "all" 
-                        ? "View and manage all inventory items" 
-                        : `View and manage items in the ${category.replace(/_/g, " ")} category`}
-                    </CardDescription>
-                  </div>
-                  <div className="w-full md:w-auto">
-                    <Suspense fallback={<Skeleton className="h-10 w-[250px]" />}>
-                      <SearchInventory category={category === "all" ? undefined : category} />
-                    </Suspense>
-                  </div>
+        {/* Only bakery tab content */}
+        <TabsContent value="bakery">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle>Bakery Items</CardTitle>
+                  <CardDescription>
+                    Manage items in the bakery subcategory
+                  </CardDescription>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <Suspense 
-                  fallback={
-                    <div className="space-y-2">
-                      <Skeleton className="h-10 w-full" />
-                      <Skeleton className="h-10 w-full" />
-                      <Skeleton className="h-10 w-full" />
-                    </div>
-                  }
-                >
-                  <CategoryInventory category={category === "all" ? undefined : category} />
-                </Suspense>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
+                <div className="w-full md:w-auto">
+                  <Suspense fallback={<Skeleton className="h-10 w-[250px]" />}>
+                    <SearchInventory subcategory="bakery" />
+                  </Suspense>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Suspense 
+                fallback={
+                  <div className="space-y-2">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                }
+              >
+                <SubcategoryInventory subcategory="bakery" />
+              </Suspense>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-// Category-specific inventory component with server data fetching
-async function CategoryInventory({ category }: { category?: string }) {
-  const { getInventoryItems } = await import("@/lib/actions/inventory");
-  const items = await getInventoryItems(category);
+// Subcategory-specific inventory component with server data fetching
+async function SubcategoryInventory({ subcategory }: { subcategory: string }) {
+  const { getInventoryItemsBySubcategory } = await import("@/lib/actions/inventory");
+  const items = await getInventoryItemsBySubcategory(subcategory);
   
   return (
     <div>
