@@ -109,7 +109,7 @@ export function InventoryTable({ items, onItemUpdated }: InventoryTableProps) {
                   )}
                 </TableCell>
                 <TableCell className="text-right">
-                  ${item.stockValue?.toLocaleString() || "0"}
+                  Ksh{item.stockValue?.toLocaleString() || "0"}
                 </TableCell>
                 <TableCell>
                   {getItemStatusBadge(item)}
