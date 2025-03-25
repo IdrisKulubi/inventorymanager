@@ -57,22 +57,22 @@ export async function deleteInventoryItem(id: number) {
 
 export async function getInventoryItems(category?: string, search?: string) {
   try {
-    let query = db.select().from(inventoryItems);
+    const query = db.select().from(inventoryItems);
     
     if (category) {
       if (category === "fixed_assets") {
-        query = query.where(eq(inventoryItems.category, "fixed_assets"));
+        query.where(eq(inventoryItems.category, "fixed_assets"));
       } else if (category === "beer_room") {
-        query = query.where(eq(inventoryItems.category, "beer_room"));
+        query.where(eq(inventoryItems.category, "beer_room"));
       } else if (category === "chocolate_room") {
-        query = query.where(eq(inventoryItems.category, "chocolate_room"));
+        query.where(eq(inventoryItems.category, "chocolate_room"));
       } else if (category === "kitchen") {
-        query = query.where(eq(inventoryItems.category, "kitchen"));
+        query.where(eq(inventoryItems.category, "kitchen"));
       }
     }
     
     if (search) {
-      query = query.where(
+      query.where(
         or(
           sql`${inventoryItems.itemName} ILIKE ${`%${search}%`}`,
           sql`${inventoryItems.brand} ILIKE ${`%${search}%`}`,
@@ -82,7 +82,7 @@ export async function getInventoryItems(category?: string, search?: string) {
     }
 
     // Order by expiry date for consumables, and by name for fixed assets
-    query = query.orderBy(
+    query.orderBy(
       sql`CASE WHEN ${inventoryItems.isFixedAsset} = true THEN 1 ELSE 0 END`,
       sql`CASE WHEN ${inventoryItems.expiryDate} IS NULL THEN 1 ELSE 0 END`,
       inventoryItems.expiryDate,
@@ -155,17 +155,37 @@ export async function getInventoryStats() {
 
     // Count items by expiry status
     const expiredItems = items.filter(item => item.expiryStatus === 'expired').length;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const expiringSoonItems = items.filter(item => item.expiryStatus === 'expiring_soon').length;
     const validItems = items.filter(item => item.expiryStatus === 'valid').length;
 
     const stats = {
       totalItems: items.length,
       totalCategories: new Set(items.map(item => item.category)).size,
-      expiringSoon: expiringSoonItems,
+      expiringSoon: items.filter(item => {
+        if (item.subcategory !== 'bakery' || !item.expiryDate) return false;
+        
+        const today = new Date();
+        const sevenDaysLater = new Date();
+        sevenDaysLater.setDate(today.getDate() + 7);
+        
+        const expiryDate = new Date(item.expiryDate);
+        return expiryDate >= today && expiryDate <= sevenDaysLater;
+      }).length,
       expired: expiredItems,
       valid: validItems,
-      lowStock: items.filter(item => !item.isFixedAsset && item.quantity < 10).length,
-      needsOrdering: items.filter(item => !item.isFixedAsset && item.orderQuantity && item.orderQuantity > 0).length,
+      lowStock: items.filter(item => 
+        item.subcategory === 'bakery' && 
+        item.minimumStockLevel !== null && 
+        item.quantity <= item.minimumStockLevel
+      ).length,
+      needsOrdering: items.filter(item => 
+        item.subcategory === 'bakery' &&
+        item.minimumStockLevel !== null && 
+        item.quantity <= item.minimumStockLevel && 
+        item.orderQuantity !== null &&
+        item.orderQuantity > 0
+      ).length,
       categoryBreakdown: {
         chocolateRoom: chocolateRoomItems,
         beerRoom: beerRoomItems,
@@ -216,14 +236,14 @@ export async function getInventoryStats() {
 
 export async function getInventoryItemsBySubcategory(subcategory?: string, search?: string) {
   try {
-    let query = db.select().from(inventoryItems);
-    
+    const query = db.select().from(inventoryItems);
     if (subcategory) {
-      query = query.where(eq(inventoryItems.subcategory, subcategory));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      query.where(eq(inventoryItems.subcategory, subcategory as any)); // Using any as temporary fix until proper enum type is defined
     }
     
     if (search) {
-      query = query.where(
+      query.where(
         or(
           sql`${inventoryItems.itemName} ILIKE ${`%${search}%`}`,
           sql`${inventoryItems.brand} ILIKE ${`%${search}%`}`,
@@ -233,7 +253,7 @@ export async function getInventoryItemsBySubcategory(subcategory?: string, searc
     }
 
     // Order by expiry date for consumables, and by name for fixed assets
-    query = query.orderBy(
+    query.orderBy(
       sql`CASE WHEN ${inventoryItems.isFixedAsset} = true THEN 1 ELSE 0 END`,
       sql`CASE WHEN ${inventoryItems.expiryDate} IS NULL THEN 1 ELSE 0 END`,
       inventoryItems.expiryDate,

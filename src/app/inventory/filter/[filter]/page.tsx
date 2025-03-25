@@ -1,191 +1,230 @@
-import { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 import db from "@/db/drizzle";
 import { sql } from "drizzle-orm";
-import { InventoryTable } from "@/components/inventory/inventory-table";
-import {  addDays } from "date-fns";
+import { PageHeader } from "@/components/ui/page-header";
+import { AddItemAction, DailyUpdatesAction } from "@/components/action-buttons";
 
-// Define interface for our inventory items
-interface ExtendedInventoryItem {
+interface FilterPageProps {
+  params: { filter: string };
+}
+
+// Define the shape of our processed inventory items
+interface ProcessedItem {
   id: number;
   itemName: string;
   category: string;
-  subcategory?: string | null;
+  subcategory: string;
   quantity: number;
-  unit: string;
-  brand?: string | null;
-  stockValue?: number | null;
-  expiryDate?: string | null;
-  minimumStockLevel?: number | null;
-  orderQuantity?: number | null;
-  isFixedAsset: boolean | null;
-  assetLocation?: string | null;
-  supplierName?: string | null;
-  supplierContact?: string | null;
-  supplierEmail?: string | null;
-  supplierPhone?: string | null;
-  cost?: number | null;
-  createdAt?: Date | null;
-  purchaseDate?: Date | string | null;
-  shelfLifeValue?: number | null;
-  shelfLifeUnit?: string | null;
-  expiryStatus?: string | null;
+  minimumStockLevel: number | null;
+  stockValue: number | null;
+  orderQuantity: number | null;
+  expiryDate: string | null;
+  cost: number | null;
+  sellingPrice: number | null;
+  expiryStatus: string | null;
 }
 
-export const metadata: Metadata = {
-  title: "Filtered Inventory",
-  description: "View filtered inventory items",
-};
-
-export default async function FilterPage({
-  params,
-}: {
-  params: { filter: string };
-}) {
-  const { filter } = params;
-  let items: ExtendedInventoryItem[] = [];
+export default async function FilterPage({ params }: FilterPageProps) {
+  // Properly await params in Next.js 15
+  const awaitedParams = await params;
+  const filter = awaitedParams.filter;
+  
   let title = "";
   let description = "";
+  let items = [];
   
-  // Set up query based on filter type
-  if (filter === "expiring") {
-    title = "Expiring Soon";
-    description = "Items that will expire within the next 7 days";
-    
-    // Get items expiring in the next 7 days
-    const sevenDaysFromNow = addDays(new Date(), 7).toISOString().split('T')[0];
-    
-    try {
-      const result = await db.execute(sql`
-        SELECT * FROM inventory_items 
-        WHERE expiry_date <= ${sevenDaysFromNow} 
-        AND expiry_date >= CURRENT_DATE
-      `);
+  console.log(`Processing filter: ${filter}`);
+  
+  try {
+    if (filter === "low-stock") {
+      title = "Low Stock Items";
+      description = "Items that are below their minimum stock level";
       
-      // Map the raw results to our ExtendedInventoryItem interface
-      items = result.rows.map(row => ({
-        id: Number(row.id),
-        itemName: String(row.item_name),
-        category: String(row.category),
-        subcategory: row.subcategory ? String(row.subcategory) : null,
-        quantity: Number(row.quantity),
-        unit: String(row.unit),
-        stockValue: row.stock_value ? Number(row.stock_value) : null,
-        expiryDate: row.expiry_date ? String(row.expiry_date) : null,
-        minimumStockLevel: row.minimum_stock_level ? Number(row.minimum_stock_level) : null,
-        isFixedAsset: row.is_fixed_asset ? Boolean(row.is_fixed_asset) : null,
-        brand: row.brand ? String(row.brand) : null,
-        orderQuantity: row.order_quantity ? Number(row.order_quantity) : null,
-        assetLocation: row.asset_location ? String(row.asset_location) : null,
-        supplierName: row.supplier_name ? String(row.supplier_name) : null,
-        supplierContact: row.supplier_contact ? String(row.supplier_contact) : null,
-        supplierEmail: row.supplier_email ? String(row.supplier_email) : null,
-        supplierPhone: row.supplier_phone ? String(row.supplier_phone) : null,
-        cost: row.cost ? Number(row.cost) : null,
-        createdAt: row.created_at ? new Date(row.created_at as string) : null,
-        purchaseDate: row.purchase_date ? String(row.purchase_date) : null,
-        shelfLifeValue: row.shelf_life_value ? Number(row.shelf_life_value) : null,
-        shelfLifeUnit: row.shelf_life_unit ? String(row.shelf_life_unit) : null,
-        expiryStatus: row.expiry_status ? String(row.expiry_status) : null
-      }));
-      
-    } catch (error) {
-      console.error("Error fetching expiring items:", error);
-    }
-  } else if (filter === "low-stock") {
-    title = "Low Stock Items";
-    description = "Items that are below their minimum stock level";
-    
-    try {
+      // Get all bakery items below minimum stock level
       const result = await db.execute(sql`
         SELECT * FROM inventory_items 
         WHERE quantity <= minimum_stock_level 
-        AND minimum_stock_level IS NOT NULL
+        AND minimum_stock_level IS NOT NULL 
+        AND subcategory = 'bakery'
       `);
       
-      // Map the raw results to our ExtendedInventoryItem interface
-      items = result.rows.map(row => ({
-        id: Number(row.id),
-        itemName: String(row.item_name),
-        category: String(row.category),
-        subcategory: row.subcategory ? String(row.subcategory) : null,
-        quantity: Number(row.quantity),
-        unit: String(row.unit),
-        stockValue: row.stock_value ? Number(row.stock_value) : null,
-        expiryDate: row.expiry_date ? String(row.expiry_date) : null,
-        minimumStockLevel: row.minimum_stock_level ? Number(row.minimum_stock_level) : null,
-        isFixedAsset: row.is_fixed_asset ? Boolean(row.is_fixed_asset) : null,
-        brand: row.brand ? String(row.brand) : null,
-        orderQuantity: row.order_quantity ? Number(row.order_quantity) : null,
-        assetLocation: row.asset_location ? String(row.asset_location) : null,
-        supplierName: row.supplier_name ? String(row.supplier_name) : null,
-        supplierContact: row.supplier_contact ? String(row.supplier_contact) : null,
-        supplierEmail: row.supplier_email ? String(row.supplier_email) : null,
-        supplierPhone: row.supplier_phone ? String(row.supplier_phone) : null,
-        cost: row.cost ? Number(row.cost) : null,
-        createdAt: row.created_at ? new Date(row.created_at as string) : null,
-        purchaseDate: row.purchase_date ? String(row.purchase_date) : null,
-        shelfLifeValue: row.shelf_life_value ? Number(row.shelf_life_value) : null,
-        shelfLifeUnit: row.shelf_life_unit ? String(row.shelf_life_unit) : null,
-        expiryStatus: row.expiry_status ? String(row.expiry_status) : null
-      }));
+      items = result.rows;
+      console.log(`Found ${items.length} low stock items`);
       
-    } catch (error) {
-      console.error("Error fetching low stock items:", error);
-    }
-  } else if (filter === "needs-ordering") {
-    title = "Items Needing Reorder";
-    description = "Items that need to be reordered";
-    
-    try {
+    } else if (filter === "expiring") {
+      title = "Expiring Items";
+      description = "Items that will expire soon";
+      
+      // Get current date and date 7 days from now
+      const today = new Date();
+      const sevenDaysLater = new Date();
+      sevenDaysLater.setDate(today.getDate() + 7);
+      
+      const todayFormatted = today.toISOString().split('T')[0];
+      const sevenDaysLaterFormatted = sevenDaysLater.toISOString().split('T')[0];
+      
+      // Get all bakery items expiring in the next 7 days
+      const result = await db.execute(sql`
+        SELECT * FROM inventory_items 
+        WHERE expiry_date IS NOT NULL
+        AND expiry_date >= ${todayFormatted}
+        AND expiry_date <= ${sevenDaysLaterFormatted}
+        AND subcategory = 'bakery'
+      `);
+      
+      items = result.rows;
+      console.log(`Found ${items.length} expiring items`);
+      
+    } else if (filter === "needs-ordering") {
+      title = "Items Needing Order";
+      description = "Items that need to be reordered based on minimum stock levels";
+      
+      // Get all bakery items that need ordering
       const result = await db.execute(sql`
         SELECT * FROM inventory_items 
         WHERE quantity <= minimum_stock_level 
-        AND order_quantity IS NOT NULL 
         AND order_quantity > 0
+        AND subcategory = 'bakery'
       `);
       
-      // Map the raw results to our ExtendedInventoryItem interface
-      items = result.rows.map(row => ({
-        id: Number(row.id),
-        itemName: String(row.item_name),
-        category: String(row.category),
-        subcategory: row.subcategory ? String(row.subcategory) : null,
-        quantity: Number(row.quantity),
-        unit: String(row.unit),
-        stockValue: row.stock_value ? Number(row.stock_value) : null,
-        expiryDate: row.expiry_date ? String(row.expiry_date) : null,
-        minimumStockLevel: row.minimum_stock_level ? Number(row.minimum_stock_level) : null,
-        isFixedAsset: row.is_fixed_asset ? Boolean(row.is_fixed_asset) : null,
-        brand: row.brand ? String(row.brand) : null,
-        orderQuantity: row.order_quantity ? Number(row.order_quantity) : null,
-        assetLocation: row.asset_location ? String(row.asset_location) : null,
-        supplierName: row.supplier_name ? String(row.supplier_name) : null,
-        supplierContact: row.supplier_contact ? String(row.supplier_contact) : null,
-        supplierEmail: row.supplier_email ? String(row.supplier_email) : null,
-        supplierPhone: row.supplier_phone ? String(row.supplier_phone) : null,
-        cost: row.cost ? Number(row.cost) : null,
-        createdAt: row.created_at ? new Date(row.created_at as string) : null,
-        purchaseDate: row.purchase_date ? String(row.purchase_date) : null,
-        shelfLifeValue: row.shelf_life_value ? Number(row.shelf_life_value) : null,
-        shelfLifeUnit: row.shelf_life_unit ? String(row.shelf_life_unit) : null,
-        expiryStatus: row.expiry_status ? String(row.expiry_status) : null
-      }));
+      items = result.rows;
+      console.log(`Found ${items.length} items needing order`);
       
-    } catch (error) {
-      console.error("Error fetching items needing reorder:", error);
+    } else {
+      return notFound();
     }
+    
+    // Convert snake_case to camelCase for properties
+    items = items.map(item => ({
+      id: item.id,
+      itemName: item.item_name,
+      category: item.category,
+      subcategory: item.subcategory,
+      quantity: item.quantity,
+      minimumStockLevel: item.minimum_stock_level,
+      stockValue: item.stock_value,
+      orderQuantity: item.order_quantity,
+      expiryDate: item.expiry_date,
+      cost: item.cost,
+      sellingPrice: item.selling_price,
+      expiryStatus: item.expiry_status
+    })) as ProcessedItem[];
+    
+    return (
+      <div className="container py-8 space-y-6">
+        <PageHeader
+          title={title}
+          description={description}
+          breadcrumbs={[
+            { label: "Inventory", href: "/inventory" },
+            { label: title }
+          ]}
+          backLink={{
+            label: "Back to Inventory",
+            href: "/inventory"
+          }}
+          actions={[AddItemAction, DailyUpdatesAction]}
+        />
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>
+              {items.length} {filter === "low-stock" && "low stock"} 
+              {filter === "expiring" && "expiring"} 
+              {filter === "needs-ordering" && "needing order"} items found
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {items.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-right">Quantity</TableHead>
+                    {filter === "low-stock" && (
+                      <TableHead className="text-right">Min. Level</TableHead>
+                    )}
+                    {filter === "expiring" && (
+                      <TableHead>Expiry Date</TableHead>
+                    )}
+                    {filter === "needs-ordering" && (
+                      <TableHead className="text-right">Order Quantity</TableHead>
+                    )}
+                    <TableHead className="text-right">Value</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((item: ProcessedItem) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">
+                        <Link href={`/inventory/${item.id}`} className="hover:underline">
+                          {item.itemName}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{item.subcategory}</TableCell>
+                      <TableCell className="text-right">{item.quantity}</TableCell>
+                      {filter === "low-stock" && (
+                        <TableCell className="text-right">{item.minimumStockLevel}</TableCell>
+                      )}
+                      {filter === "expiring" && (
+                        <TableCell>
+                          {item.expiryDate && format(new Date(item.expiryDate), "MMM d, yyyy")}
+                        </TableCell>
+                      )}
+                      {filter === "needs-ordering" && (
+                        <TableCell className="text-right">{item.orderQuantity}</TableCell>
+                      )}
+                      <TableCell className="text-right">
+                        Ksh{item.stockValue?.toLocaleString() || "0"}
+                      </TableCell>
+                      <TableCell>
+                        {filter === "low-stock" && (
+                          <Badge variant="destructive">Low Stock</Badge>
+                        )}
+                        {filter === "expiring" && (
+                          <Badge variant="warning">Expiring Soon</Badge>
+                        )}
+                        {filter === "needs-ordering" && (
+                          <Badge variant="outline">Order Needed</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">No {filter.replace('-', ' ')} items found</p>
+                <h1>No items found</h1> 
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  } catch (error) {
+    console.error(`Error processing ${filter} filter:`, error);
+    return (
+      <div className="container py-8">
+        <h1 className="text-2xl font-bold mb-4">Error</h1>
+        <p className="text-red-500">An error occurred while processing your request.</p>
+        <Button asChild className="mt-4">
+          <Link href="/inventory">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Inventory
+          </Link>
+        </Button>
+      </div>
+    );
   }
-  
-  return (
-    <div className="container py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        <p className="text-muted-foreground">{description}</p>
-      </div>
-      
-      <div>
-        <InventoryTable items={items} />
-      </div>
-    </div>
-  );
 } 

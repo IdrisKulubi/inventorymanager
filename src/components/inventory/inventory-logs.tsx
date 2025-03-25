@@ -80,7 +80,7 @@ export function InventoryLogs({ logs, className }: InventoryLogsProps) {
                   <TableCell className="text-right whitespace-nowrap">
                     {log.valueBefore != null && log.valueAfter != null && (
                       <>
-                        ${formatCurrency(log.valueBefore)} → ${formatCurrency(log.valueAfter)}
+                        Ksh{formatCurrency(log.valueBefore)} → Ksh{formatCurrency(log.valueAfter)}
                       </>
                     )}
                   </TableCell>

@@ -10,7 +10,6 @@ interface SearchInventoryProps {
   subcategory?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function SearchInventory({ category, subcategory }: SearchInventoryProps) {
   const router = useRouter();
   const searchParams = useSearchParams();

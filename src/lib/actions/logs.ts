@@ -35,15 +35,22 @@ export async function createLogEntry(data: LogEntry) {
       currentDate.getDate()
     );
     
+    // Format for database - YYYY-MM-DD
+    const dateStampStr = dateStamp.toISOString().split('T')[0];
+    console.log(`Creating log entry for date: ${dateStampStr}, action: ${data.action}`);
+    
     // Create the log entry
     const result = await db.insert(inventoryLogs).values({
       ...validatedData,
-      dateStamp: dateStamp.toISOString(),
+      dateStamp: dateStampStr,
     }).returning();
+    
+    console.log(`Log entry created: ID ${result[0]?.id}, action: ${result[0]?.action}`);
     
     // Revalidate the inventory paths
     revalidatePath('/inventory');
     revalidatePath(`/inventory/${data.itemId}`);
+    revalidatePath('/');  // Also revalidate the dashboard
     
     return { success: true, log: result[0] };
   } catch (error) {
@@ -72,35 +79,42 @@ export async function getDailyLogsSummary(date?: Date) {
   try {
     // Get current date if not provided
     const targetDate = date || new Date();
-    const dateString = targetDate.toISOString().split('T')[0];
+    
+    // Format date for SQL query - ensures we're using YYYY-MM-DD format
+    const formattedDate = targetDate.toISOString().split('T')[0];
+    
+    console.log('Getting daily logs summary for date:', formattedDate);
     
     // Query logs for the specified date
-    const logs = await db.execute(
-      sql`SELECT 
-            il.action, 
-            COUNT(*) as count, 
-            SUM(CASE WHEN il.value_after > il.value_before THEN il.value_after - il.value_before ELSE 0 END) as value_increase,
-            SUM(CASE WHEN il.value_before > il.value_after THEN il.value_before - il.value_after ELSE 0 END) as value_decrease
-          FROM 
-            inventory_logs il
-          WHERE 
-            il.date_stamp = ${dateString}
-          GROUP BY 
-            il.action`
-    );
+    const logsQuery = sql`SELECT 
+          il.action, 
+          COUNT(*) as count, 
+          SUM(CASE WHEN il.value_after > il.value_before THEN il.value_after - il.value_before ELSE 0 END) as value_increase,
+          SUM(CASE WHEN il.value_before > il.value_after THEN il.value_before - il.value_after ELSE 0 END) as value_decrease
+        FROM 
+          inventory_logs il
+        WHERE 
+          DATE(il.date_stamp) = DATE(${formattedDate})
+        GROUP BY 
+          il.action`;
+          
+    console.log('Daily logs query executing...');
+    const logs = await db.execute(logsQuery);
+    
+    console.log('Daily logs results:', logs.rows);
     
     // Get count of items affected
     const itemsAffected = await db.execute(
       sql`SELECT COUNT(DISTINCT item_id) as items_affected
           FROM inventory_logs
-          WHERE date_stamp = ${dateString}`
+          WHERE DATE(date_stamp) = DATE(${formattedDate})`
     );
     
     return { 
       success: true, 
       summary: logs.rows,
       itemsAffected: itemsAffected.rows[0]?.items_affected || 0,
-      date: dateString
+      date: formattedDate
     };
   } catch (error) {
     console.error('Error getting daily logs summary:', error);
@@ -133,11 +147,18 @@ export async function updateInventoryCountWithLog(
     const valuePerUnit = item.cost ? item.cost : (item.stockValue && item.quantity ? item.stockValue / item.quantity : 0);
     const newStockValue = valuePerUnit ? Math.round(valuePerUnit * newQuantity) : stockValue;
     
-    // Determine action type
-    const action = 
-      newQuantity > quantityBefore ? 'stock_added' : 
-      newQuantity < quantityBefore ? 'stock_removed' : 
-      'count_adjustment';
+    // Determine action type with proper typing
+    let action: 'stock_added' | 'stock_removed' | 'count_adjustment';
+    if (newQuantity > quantityBefore) {
+      action = 'stock_added';
+      console.log(`Stock Added: Item #${itemId} - ${item.itemName} - From ${quantityBefore} to ${newQuantity}`);
+    } else if (newQuantity < quantityBefore) {
+      action = 'stock_removed';
+      console.log(`Stock Removed: Item #${itemId} - ${item.itemName} - From ${quantityBefore} to ${newQuantity}`);
+    } else {
+      action = 'count_adjustment';
+      console.log(`Count Adjustment: Item #${itemId} - ${item.itemName} - No change in quantity`);
+    }
     
     // Update the item
     await db.update(inventoryItems)
@@ -147,8 +168,9 @@ export async function updateInventoryCountWithLog(
       })
       .where(eq(inventoryItems.id, itemId));
     
-    // Create a log entry
-    await createLogEntry({
+    // Create a log entry to ensure it's recorded properly
+    // Log entry with proper typing
+    const logResult = await createLogEntry({
       itemId,
       action,
       quantityBefore,
@@ -160,7 +182,15 @@ export async function updateInventoryCountWithLog(
       userName
     });
     
-    return { success: true, newQuantity, newStockValue };
+    console.log('Log creation result:', logResult);
+    
+    return { 
+      success: true, 
+      newQuantity, 
+      newStockValue,
+      action, 
+      log: logResult 
+    };
   } catch (error) {
     console.error('Error updating inventory count:', error);
     return { success: false, error };
@@ -272,7 +302,7 @@ export async function getInventoryTurnover(period: 'month' | 'quarter' | 'year')
   try {
     // Calculate the start date based on the period
     const now = new Date();
-    let startDate = new Date();
+    const startDate = new Date();
     
     switch (period) {
       case 'month':

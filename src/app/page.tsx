@@ -4,6 +4,8 @@ import { sql } from "drizzle-orm";
 import { DashboardCard } from "@/components/inventory/dashboard-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { AddItemAction, DailyUpdatesAction } from "@/components/action-buttons";
+import { WasteItemsProvider } from "@/components/inventory/waste-items-provider";
+import { ClientDashboardCard } from "@/components/inventory/dashboard-card-client";
 
 export default async function Home() {
   // Get bakery items count
@@ -42,7 +44,12 @@ export default async function Home() {
     WHERE il.action = 'stock_added'
     AND il.date_stamp >= ${thirtyDaysAgoStr}
     AND i.subcategory = 'bakery'
+    AND il.quantity_after > il.quantity_before
   `);
+  
+  // Debug the query results
+  console.log('Stock In Query:', thirtyDaysAgoStr, stockInResult.rows);
+  
   const stockIn = Number(stockInResult.rows[0]?.total || 0);
 
   // Get stock sold
@@ -87,135 +94,82 @@ export default async function Home() {
   const profit = sellingValue - costValue;
 
   return (
-    <div className="space-y-8 py-8">
-      <PageHeader
-        title="Bakery Dashboard"
-        description="Overview of your bakery inventory status"
-        actions={[AddItemAction, DailyUpdatesAction]}
-      />
+    <WasteItemsProvider>
+      <div className="space-y-8 py-8">
+        <PageHeader
+          title="Bakery Dashboard"
+          description="Overview of your bakery inventory status"
+          actions={[AddItemAction, DailyUpdatesAction]}
+        />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <DashboardCard
-          title="Total Bakery Items"
-          value={bakeryItems[0].count}
-          description="Items in bakery inventory"
-          icon="🥐"
-          href="/inventory/subcategory/bakery"
-        />
-        <DashboardCard
-          title="Total Value"
-          value={`Ksh${(bakeryValue[0].value || 0).toLocaleString()}`}
-          description="Current bakery inventory value"
-          icon="💰"
-        />
-        <DashboardCard
-          title="Low Stock"
-          value={lowStockCount}
-          description="Items below minimum level"
-          variant="destructive"
-          icon="⚠️"
-          href="/inventory/filter/low-stock"
-        />
-        <DashboardCard
-          title="Daily Updates"
-          value="Update"
-          description="Daily counts and variance reports"
-          variant="default"
-          icon="📋"
-          href="/inventory/daily-updates"
-        />
-      </div>
-
-      <div>
-        <h3 className="text-lg font-medium mb-4">Last 30 Days Performance</h3>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <DashboardCard
-            title="Stock In"
-            value={stockIn}
-            description="New items added to inventory"
-            icon="📥"
-            variant="success"
+            title="Total Bakery Items"
+            value={bakeryItems[0].count}
+            description="Items in bakery inventory"
+            icon="🥐"
+            href="/inventory/subcategory/bakery"
           />
           <DashboardCard
-            title="Stock Sold"
-            value={stockSold}
-            description="Items sold from inventory"
-            icon="🛒"
-            variant="default"
-            href="/api/reports/sales?format=csv"
+            title="Total Value"
+            value={`Ksh${(bakeryValue[0].value || 0).toLocaleString()}`}
+            description="Current bakery inventory value"
+            icon="💰"
           />
           <DashboardCard
-            title="Stock Wasted"
-            value={stockWasted}
-            description="Items discarded or wasted"
-            icon="🗑️"
+            title="Low Stock"
+            value={lowStockCount}
+            description="Items below minimum level"
             variant="destructive"
+            icon="⚠️"
+            href="/inventory/filter/low-stock"
           />
           <DashboardCard
-            title="Profit Margin"
-            value={`${profit > 0 ? "+" : ""}Ksh${profit.toLocaleString()}`}
-            description={`From Ksh${sellingValue.toLocaleString()} sales`}
-            icon="📈"
-            variant={profit > 0 ? "success" : "destructive"}
-            href="/api/reports/sales?format=json"
+            title="Daily Updates"
+            value="Update"
+            description="Daily counts and variance reports"
+            variant="default"
+            icon="📋"
+            href="/inventory/daily-updates"
           />
         </div>
-      </div>
-      
-      {/* Other sections commented out for initial bakery focus
-      <div>
-        <h3 className="text-lg font-medium mb-4">Categories</h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <DashboardCard
-            title="Beer Room"
-            value={beerRoomItems[0].count}
-            description="Beer room items"
-            icon="🍺"
-            href="/inventory/category/beer_room"
-          />
-          <DashboardCard
-            title="Chocolate Room"
-            value={chocolateRoomItems[0].count}
-            description="Chocolate room items"
-            icon="🍫"
-            href="/inventory/category/chocolate_room"
-          />
-          <DashboardCard
-            title="Kitchen"
-            value={kitchenItems[0].count}
-            description="Kitchen items"
-            icon="🍽️"
-            href="/inventory/category/kitchen"
-          />
-          <DashboardCard
-            title="Fixed Assets"
-            value={fixedAssets[0].count}
-            description="Fixed assets items"
-            icon="🏢"
-            href="/inventory/category/fixed_assets"
-          />
+
+        <div>
+          <h3 className="text-lg font-medium mb-4">Last 30 Days Performance</h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <DashboardCard
+              title="Stock In"
+              value={stockIn}
+              description="New items added to inventory"
+              icon="📥"
+              variant="success"
+            />
+            <DashboardCard
+              title="Stock Sold"
+              value={stockSold}
+              description="Items sold from inventory"
+              icon="🛒"
+              variant="default"
+            />
+            <ClientDashboardCard
+              title="Stock Wasted"
+              value={stockWasted}
+              description="Click to view wasted items"
+              icon="🗑️"
+              variant="destructive"
+              cardType="waste"
+            />
+            <ClientDashboardCard
+              title="Profit Margin"
+              value={`${profit > 0 ? "+" : ""}Ksh${profit.toLocaleString()}`}
+              description="Click to export profit data"
+              icon="📈"
+              variant={profit > 0 ? "success" : "destructive"}
+              cardType="profit"
+            />
+          </div>
         </div>
-      </div>
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <DashboardCard
-          title="Needs Ordering"
-          value={needsOrderingCount}
-          description="Items to reorder"
-          variant="success"
-          icon="🛒"
-          href="/inventory/filter/needs-ordering"
-        />
-        <DashboardCard
-          title="Analytics"
-          value="View"
-          description="Inventory turnover and insights"
-          variant="default"
-          icon="📊"
-          href="/analytics"
-        />
-      </div>
-      */}
     </div>
+    </WasteItemsProvider>
   );
 }
