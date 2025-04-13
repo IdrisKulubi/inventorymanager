@@ -25,7 +25,7 @@ interface SectionDashboardProps {
   title: string;
   description: string;
   stats: SectionStats;
-  items:any;
+  items:any[];
   isLoading?: boolean;
 }
 

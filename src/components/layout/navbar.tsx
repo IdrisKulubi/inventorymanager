@@ -15,7 +15,6 @@ import { AddItemDialog } from "@/components/inventory/add-item-dialog";
 const navLinks = [
   { name: "Dashboard", href: "/" },
   { name: "Inventory", href: "/inventory" },
-  { name: "Bakery", href: "/inventory/subcategory/bakery" },
   { name: "Daily Updates", href: "/inventory/daily-updates" },
   { name: "Analytics", href: "/analytics" },
 ];

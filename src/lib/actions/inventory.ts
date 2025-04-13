@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import db from "@/db/drizzle";
@@ -268,18 +269,14 @@ export async function getSectionStats(section: string) {
       // Kitchen section should use kitchen-related subcategories from the enum
       query.where(
         or(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          eq(inventoryItems.subcategory as any, 'kitchen_supplies'),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          eq(inventoryItems.subcategory as any, 'pantry'),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          eq(inventoryItems.subcategory as any, 'dairy'),
+          eq(inventoryItems.subcategory, 'ingredients'),
+          eq(inventoryItems.subcategory, 'utensils'),
+          eq(inventoryItems.subcategory, 'appliances'),
           eq(inventoryItems.subcategory, 'other_kitchen')
         )
       );
     } else {
       // For other sections like 'bakery', just use direct subcategory match
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       query.where(eq(inventoryItems.subcategory, section as any));
     }
     
@@ -381,18 +378,14 @@ export async function getInventoryItemsBySection(section: string, search?: strin
       // Kitchen section should use kitchen-related subcategories from the enum
       query.where(
         or(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          eq(inventoryItems.subcategory as any, 'kitchen_supplies'),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          eq(inventoryItems.subcategory as any, 'pantry'),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          eq(inventoryItems.subcategory as any, 'dairy'),
+          eq(inventoryItems.subcategory, 'ingredients'),
+          eq(inventoryItems.subcategory, 'utensils'),
+          eq(inventoryItems.subcategory, 'appliances'),
           eq(inventoryItems.subcategory, 'other_kitchen')
         )
       );
     } else {
       // For other sections like 'bakery', just use direct subcategory match
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       query.where(eq(inventoryItems.subcategory, section as any));
     }
     
