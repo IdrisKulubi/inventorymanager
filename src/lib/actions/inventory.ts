@@ -150,20 +150,24 @@ export async function getInventoryStats() {
     const kitchenItems = items.filter(item => item.category === 'kitchen' && !item.isFixedAsset).length;
     const fixedAssets = items.filter(item => item.isFixedAsset).length;
     
-    // Count bakery items
+    // Count subcategory items
     const bakeryItems = items.filter(item => item.subcategory === 'bakery').length;
+    const barItems = items.filter(item => 
+      ['beer', 'wine', 'spirits', 'other_alcohol'].includes(item.subcategory)
+    ).length;
+    const merchandiseItems = items.filter(item => 
+      ['chocolate_room_assets', 'beer_room_assets', 'kitchen_assets'].includes(item.subcategory)
+    ).length;
 
     // Count items by expiry status
     const expiredItems = items.filter(item => item.expiryStatus === 'expired').length;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const expiringSoonItems = items.filter(item => item.expiryStatus === 'expiring_soon').length;
     const validItems = items.filter(item => item.expiryStatus === 'valid').length;
 
     const stats = {
       totalItems: items.length,
       totalCategories: new Set(items.map(item => item.category)).size,
       expiringSoon: items.filter(item => {
-        if (item.subcategory !== 'bakery' || !item.expiryDate) return false;
+        if (!item.expiryDate) return false;
         
         const today = new Date();
         const sevenDaysLater = new Date();
@@ -175,12 +179,10 @@ export async function getInventoryStats() {
       expired: expiredItems,
       valid: validItems,
       lowStock: items.filter(item => 
-        item.subcategory === 'bakery' && 
         item.minimumStockLevel !== null && 
         item.quantity <= item.minimumStockLevel
       ).length,
       needsOrdering: items.filter(item => 
-        item.subcategory === 'bakery' &&
         item.minimumStockLevel !== null && 
         item.quantity <= item.minimumStockLevel && 
         item.orderQuantity !== null &&
@@ -193,7 +195,10 @@ export async function getInventoryStats() {
         fixedAssets: fixedAssets
       },
       subcategoryBreakdown: {
-        bakery: bakeryItems
+        bakery: bakeryItems,
+        bar: barItems,
+        kitchen: kitchenItems,
+        merchandise: merchandiseItems
       },
       expiryDistribution: Array(7).fill(0).map((_, i) => {
         const date = new Date(now);
@@ -227,9 +232,93 @@ export async function getInventoryStats() {
         fixedAssets: 0
       },
       subcategoryBreakdown: {
-        bakery: 0
+        bakery: 0,
+        bar: 0,
+        kitchen: 0,
+        merchandise: 0
       },
       expiryDistribution: []
+    };
+  }
+}
+
+export async function getSectionStats(section: string) {
+  try {
+    // For 'bar' section, we need to combine multiple subcategories
+    const query = db.select().from(inventoryItems);
+    
+    if (section === 'bar') {
+      query.where(
+        or(
+          eq(inventoryItems.subcategory, 'beer'),
+          eq(inventoryItems.subcategory, 'wine'),
+          eq(inventoryItems.subcategory, 'spirits'),
+          eq(inventoryItems.subcategory, 'other_alcohol')
+        )
+      );
+    } else if (section === 'merchandise') {
+      query.where(
+        or(
+          eq(inventoryItems.subcategory, 'chocolate_room_assets'),
+          eq(inventoryItems.subcategory, 'beer_room_assets'),
+          eq(inventoryItems.subcategory, 'kitchen_assets')
+        )
+      );
+    } else if (section === 'kitchen') {
+      // Kitchen section should use kitchen-related subcategories from the enum
+      query.where(
+        or(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          eq(inventoryItems.subcategory as any, 'kitchen_supplies'),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          eq(inventoryItems.subcategory as any, 'pantry'),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          eq(inventoryItems.subcategory as any, 'dairy'),
+          eq(inventoryItems.subcategory, 'other_kitchen')
+        )
+      );
+    } else {
+      // For other sections like 'bakery', just use direct subcategory match
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      query.where(eq(inventoryItems.subcategory, section as any));
+    }
+    
+    const items = await query;
+    
+    // Get current date and date 7 days from now for expiry calculations
+    const today = new Date();
+    const sevenDaysLater = new Date();
+    sevenDaysLater.setDate(today.getDate() + 7);
+    
+    const stats = {
+      totalItems: items.length,
+      lowStock: items.filter(item => 
+        item.minimumStockLevel !== null && 
+        item.quantity <= item.minimumStockLevel
+      ).length,
+      expiringSoon: items.filter(item => {
+        if (!item.expiryDate) return false;
+        const expiryDate = new Date(item.expiryDate);
+        return expiryDate >= today && expiryDate <= sevenDaysLater;
+      }).length,
+      needsOrdering: items.filter(item => 
+        item.minimumStockLevel !== null && 
+        item.quantity <= item.minimumStockLevel && 
+        item.orderQuantity !== null &&
+        item.orderQuantity > 0
+      ).length,
+      items: items
+    };
+    
+    return stats;
+  } catch (error) {
+    console.error(`Error fetching ${section} stats:`, error);
+    return {
+      totalItems: 0,
+      lowStock: 0,
+      expiringSoon: 0,
+      needsOrdering: 0,
+      items: []
     };
   }
 }
@@ -263,6 +352,71 @@ export async function getInventoryItemsBySubcategory(subcategory?: string, searc
     return await query;
   } catch (error) {
     console.error("Error fetching inventory items by subcategory:", error);
+    return [];
+  }
+}
+
+export async function getInventoryItemsBySection(section: string, search?: string) {
+  try {
+    const query = db.select().from(inventoryItems);
+    
+    if (section === 'bar') {
+      query.where(
+        or(
+          eq(inventoryItems.subcategory, 'beer'),
+          eq(inventoryItems.subcategory, 'wine'),
+          eq(inventoryItems.subcategory, 'spirits'),
+          eq(inventoryItems.subcategory, 'other_alcohol')
+        )
+      );
+    } else if (section === 'merchandise') {
+      query.where(
+        or(
+          eq(inventoryItems.subcategory, 'chocolate_room_assets'),
+          eq(inventoryItems.subcategory, 'beer_room_assets'),
+          eq(inventoryItems.subcategory, 'kitchen_assets')
+        )
+      );
+    } else if (section === 'kitchen') {
+      // Kitchen section should use kitchen-related subcategories from the enum
+      query.where(
+        or(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          eq(inventoryItems.subcategory as any, 'kitchen_supplies'),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          eq(inventoryItems.subcategory as any, 'pantry'),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          eq(inventoryItems.subcategory as any, 'dairy'),
+          eq(inventoryItems.subcategory, 'other_kitchen')
+        )
+      );
+    } else {
+      // For other sections like 'bakery', just use direct subcategory match
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      query.where(eq(inventoryItems.subcategory, section as any));
+    }
+    
+    if (search) {
+      query.where(
+        or(
+          sql`${inventoryItems.itemName} ILIKE ${`%${search}%`}`,
+          sql`${inventoryItems.brand} ILIKE ${`%${search}%`}`,
+          sql`${inventoryItems.subcategory} ILIKE ${`%${search}%`}`
+        )
+      );
+    }
+
+    // Order by expiry date for consumables, and by name for fixed assets
+    query.orderBy(
+      sql`CASE WHEN ${inventoryItems.isFixedAsset} = true THEN 1 ELSE 0 END`,
+      sql`CASE WHEN ${inventoryItems.expiryDate} IS NULL THEN 1 ELSE 0 END`,
+      inventoryItems.expiryDate,
+      inventoryItems.itemName
+    );
+
+    return await query;
+  } catch (error) {
+    console.error(`Error fetching inventory items for section ${section}:`, error);
     return [];
   }
 } 

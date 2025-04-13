@@ -1,175 +1,159 @@
-import db from "@/db/drizzle";
-import { inventoryItems } from "@/db/schema";
-import { sql } from "drizzle-orm";
-import { DashboardCard } from "@/components/inventory/dashboard-card";
-import { PageHeader } from "@/components/ui/page-header";
-import { AddItemAction, DailyUpdatesAction } from "@/components/action-buttons";
-import { WasteItemsProvider } from "@/components/inventory/waste-items-provider";
-import { ClientDashboardCard } from "@/components/inventory/dashboard-card-client";
+import Link from 'next/link';
+import { ChevronRight, Cake, Beer, UtensilsCrossed, ShoppingBag } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { getInventoryStats } from '@/lib/actions/inventory';
 
-export default async function Home() {
-  // Get bakery items count
-  const bakeryItems = await db.select({
-    count: sql<number>`count(*)`,
-  })
-  .from(inventoryItems)
-  .where(sql`subcategory = 'bakery'`);
-
-  // Get bakery total value
-  const bakeryValue = await db.select({
-    value: sql<number>`sum(stock_value)`,
-  })
-  .from(inventoryItems)
-  .where(sql`subcategory = 'bakery'`);
-
-  // Get low stock bakery items
-  const lowStockResult = await db.execute(sql`
-    SELECT COUNT(*) as count FROM inventory_items 
-    WHERE quantity <= minimum_stock_level 
-    AND minimum_stock_level IS NOT NULL
-    AND subcategory = 'bakery'
-  `);
-  const lowStockCount = Number(lowStockResult.rows[0]?.count || 0);
-
-  // Get stats for stock movement in the last 30 days
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
-
-  // Get stock added (in)
-  const stockInResult = await db.execute(sql`
-    SELECT COALESCE(SUM(il.quantity_after - il.quantity_before), 0) as total
-    FROM inventory_logs il
-    JOIN inventory_items i ON il.item_id = i.id
-    WHERE il.action = 'stock_added'
-    AND il.date_stamp >= ${thirtyDaysAgoStr}
-    AND i.subcategory = 'bakery'
-    AND il.quantity_after > il.quantity_before
-  `);
+export default async function HomePage() {
+  const stats = await getInventoryStats();
   
-  // Debug the query results
-  console.log('Stock In Query:', thirtyDaysAgoStr, stockInResult.rows);
-  
-  const stockIn = Number(stockInResult.rows[0]?.total || 0);
-
-  // Get stock sold
-  const stockSoldResult = await db.execute(sql`
-    SELECT COALESCE(SUM(il.quantity_before - il.quantity_after), 0) as total
-    FROM inventory_logs il
-    JOIN inventory_items i ON il.item_id = i.id
-    WHERE il.action = 'stock_removed'
-    AND il.reason = 'sale'
-    AND il.date_stamp >= ${thirtyDaysAgoStr}
-    AND i.subcategory = 'bakery'
-  `);
-  const stockSold = Number(stockSoldResult.rows[0]?.total || 0);
-
-  // Get stock wasted
-  const stockWastedResult = await db.execute(sql`
-    SELECT COALESCE(SUM(il.quantity_before - il.quantity_after), 0) as total
-    FROM inventory_logs il
-    JOIN inventory_items i ON il.item_id = i.id
-    WHERE il.action = 'stock_removed'
-    AND il.reason = 'waste'
-    AND il.date_stamp >= ${thirtyDaysAgoStr}
-    AND i.subcategory = 'bakery'
-  `);
-  const stockWasted = Number(stockWastedResult.rows[0]?.total || 0);
-
-  // Calculate sales value and profit
-  const salesValueResult = await db.execute(sql`
-    SELECT 
-      COALESCE(SUM(il.value_before - il.value_after), 0) as cost_value,
-      COALESCE(SUM((il.quantity_before - il.quantity_after) * i.selling_price), 0) as selling_value
-    FROM inventory_logs il
-    JOIN inventory_items i ON il.item_id = i.id
-    WHERE il.action = 'stock_removed'
-    AND il.reason = 'sale'
-    AND il.date_stamp >= ${thirtyDaysAgoStr}
-    AND i.subcategory = 'bakery'
-  `);
-  
-  const costValue = Number(salesValueResult.rows[0]?.cost_value || 0);
-  const sellingValue = Number(salesValueResult.rows[0]?.selling_value || 0);
-  const profit = sellingValue - costValue;
+  // Define section cards with icons, colors, and stats
+  const sections = [
+    {
+      id: 'bakery',
+      name: 'Bakery',
+      description: 'Manage bakery ingredients, supplies, and products',
+      icon: <Cake className="h-8 w-8" />,
+      color: 'bg-amber-100 text-amber-800 hover:bg-amber-200',
+      stats: stats.subcategoryBreakdown.bakery,
+      path: '/dashboard/bakery'
+    },
+    {
+      id: 'bar',
+      name: 'Bar',
+      description: 'Track beer, wine, spirits, and other bar inventory',
+      icon: <Beer className="h-8 w-8" />,
+      color: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
+      stats: stats.subcategoryBreakdown.bar,
+      path: '/dashboard/bar'
+    },
+    {
+      id: 'kitchen',
+      name: 'Kitchen',
+      description: 'Manage kitchen supplies, utensils, and ingredients',
+      icon: <UtensilsCrossed className="h-8 w-8" />,
+      color: 'bg-green-100 text-green-800 hover:bg-green-200',
+      stats: stats.subcategoryBreakdown.kitchen,
+      path: '/dashboard/kitchen'
+    },
+    {
+      id: 'merchandise',
+      name: 'Merchandise',
+      description: 'Track branded merchandise, retail items, and equipment',
+      icon: <ShoppingBag className="h-8 w-8" />,
+      color: 'bg-purple-100 text-purple-800 hover:bg-purple-200',
+      stats: stats.subcategoryBreakdown.merchandise,
+      path: '/dashboard/merchandise'
+    }
+  ];
 
   return (
-    <WasteItemsProvider>
-      <div className="space-y-8 py-8">
-        <PageHeader
-          title="Bakery Dashboard"
-          description="Overview of your bakery inventory status"
-          actions={[AddItemAction, DailyUpdatesAction]}
-        />
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <DashboardCard
-            title="Total Bakery Items"
-            value={bakeryItems[0].count}
-            description="Items in bakery inventory"
-            icon="🥐"
-            href="/inventory/subcategory/bakery"
-          />
-          <DashboardCard
-            title="Total Value"
-            value={`Ksh${(bakeryValue[0].value || 0).toLocaleString()}`}
-            description="Current bakery inventory value"
-            icon="💰"
-          />
-          <DashboardCard
-            title="Low Stock"
-            value={lowStockCount}
-            description="Items below minimum level"
-            variant="destructive"
-            icon="⚠️"
-            href="/inventory/filter/low-stock"
-          />
-          <DashboardCard
-            title="Daily Updates"
-            value="Update"
-            description="Daily counts and variance reports"
-            variant="default"
-            icon="📋"
-            href="/inventory/daily-updates"
-          />
+    <div className="flex flex-col items-center min-h-screen bg-gray-50">
+      <div className="w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
+            Inventory Manager
+          </h1>
+          <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+            Your comprehensive solution for managing inventory across all departments
+          </p>
         </div>
 
-        <div>
-          <h3 className="text-lg font-medium mb-4">Last 30 Days Performance</h3>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <DashboardCard
-              title="Stock In"
-              value={stockIn}
-              description="New items added to inventory"
-              icon="📥"
-              variant="success"
-            />
-            <DashboardCard
-              title="Stock Sold"
-              value={stockSold}
-              description="Items sold from inventory"
-              icon="🛒"
-              variant="default"
-            />
-            <ClientDashboardCard
-              title="Stock Wasted"
-              value={stockWasted}
-              description="Click to view wasted items"
-              icon="🗑️"
-              variant="destructive"
-              cardType="waste"
-            />
-            <ClientDashboardCard
-              title="Profit Margin"
-              value={`${profit > 0 ? "+" : ""}Ksh${profit.toLocaleString()}`}
-              description="Click to export profit data"
-              icon="📈"
-              variant={profit > 0 ? "success" : "destructive"}
-              cardType="profit"
-            />
-          </div>
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          {sections.map((section) => (
+            <Link href={section.path} key={section.id} className="transform transition-all duration-200 hover:scale-105">
+              <Card className={`h-full border-2 hover:shadow-lg cursor-pointer ${section.id === 'bakery' ? 'border-amber-200' : section.id === 'bar' ? 'border-blue-200' : section.id === 'kitchen' ? 'border-green-200' : 'border-purple-200'}`}>
+                <CardHeader className={`rounded-t-lg ${section.color}`}>
+                  <div className="flex items-center gap-3">
+                    {section.icon}
+                    <CardTitle>{section.name}</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <CardDescription className="text-sm text-gray-600 mb-4">
+                    {section.description}
+                  </CardDescription>
+                  <div className="text-2xl font-bold">{section.stats} items</div>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="ghost" className="w-full justify-between group">
+                    View Dashboard 
+                    <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </CardFooter>
+              </Card>
+            </Link>
+          ))}
         </div>
+
+        <div className="mt-16 grid gap-8 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Updates</CardTitle>
+              <CardDescription>
+                Items that have been recently updated across all departments
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="p-4 rounded-md bg-gray-50">
+                  <p className="text-sm font-medium">Summary</p>
+                  <div className="grid grid-cols-2 mt-2 gap-y-2">
+                    <div className="text-sm text-gray-500">Low Stock Items</div>
+                    <div className="text-sm font-medium text-gray-900">{stats.lowStock}</div>
+                    <div className="text-sm text-gray-500">Expiring Soon</div>
+                    <div className="text-sm font-medium text-gray-900">{stats.expiringSoon}</div>
+                    <div className="text-sm text-gray-500">Items Needing Order</div>
+                    <div className="text-sm font-medium text-gray-900">{stats.needsOrdering}</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/inventory">View All Inventory</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>
+                Common tasks and operations for inventory management
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button asChild variant="secondary" className="w-full text-left justify-start h-auto py-3 px-4">
+                <Link href="/inventory/add">
+                  <span className="flex flex-col items-start">
+                    <span className="text-base font-medium">Add New Item</span>
+                    <span className="text-xs text-gray-500">Create a new inventory item in any section</span>
+                  </span>
+                </Link>
+              </Button>
+              
+              <Button asChild variant="secondary" className="w-full text-left justify-start h-auto py-3 px-4">
+                <Link href="/inventory/daily-updates">
+                  <span className="flex flex-col items-start">
+                    <span className="text-base font-medium">Daily Updates</span>
+                    <span className="text-xs text-gray-500">Record today&apos;s inventory changes</span>
+                  </span>
+                </Link>
+              </Button>
+              
+              <Button asChild variant="secondary" className="w-full text-left justify-start h-auto py-3 px-4">
+                <Link href="/inventory/reports">
+                  <span className="flex flex-col items-start">
+                    <span className="text-base font-medium">View Reports</span>
+                    <span className="text-xs text-gray-500">See inventory analytics and reports</span>
+                  </span>
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
-    </WasteItemsProvider>
   );
 }

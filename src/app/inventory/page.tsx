@@ -28,22 +28,25 @@ function InventoryStatsLoading() {
   );
 }
 
-// Stats component with server data fetching - bakery only
+// Stats component with server data fetching - all categories
 async function InventoryStats() {
   const stats = await getInventoryStats();
   
-  // Extract bakery stats or set to 0 if unavailable
+  // Extract stats for all categories
   const bakeryItems = stats.subcategoryBreakdown?.bakery || 0;
+  const barItems = stats.subcategoryBreakdown?.bar || 0;
+  const kitchenItems = stats.subcategoryBreakdown?.kitchen || 0;
+  const merchandiseItems = stats.subcategoryBreakdown?.merchandise || 0;
   
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <DashboardCard
-          title="Total Bakery Items"
-          value={bakeryItems}
-          description="Items in bakery inventory"
-          icon="🥐"
-          href="/inventory/subcategory/bakery"
+          title="Total Items"
+          value={stats.totalItems}
+          description="Items across all categories"
+          icon="📊"
+          href="/inventory"
         />
         <DashboardCard
           title="Low Stock"
@@ -73,15 +76,35 @@ async function InventoryStats() {
 
       <div className="mt-8">
         <h3 className="text-lg font-medium mb-4">Categories</h3>
-        <div className="grid gap-4 md:grid-cols-1">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <DashboardCard
             title="Bakery"
             value={bakeryItems}
             description="Bakery items"
             icon="🥐"
-            href="/inventory/subcategory/bakery"
+            href="/dashboard/bakery"
           />
-          {/* Other categories removed to focus only on bakery */}
+          <DashboardCard
+            title="Bar"
+            value={barItems}
+            description="Bar items"
+            icon="🍺"
+            href="/dashboard/bar"
+          />
+          <DashboardCard
+            title="Kitchen"
+            value={kitchenItems}
+            description="Kitchen items"
+            icon="🍳"
+            href="/dashboard/kitchen"
+          />
+          <DashboardCard
+            title="Merchandise"
+            value={merchandiseItems}
+            description="Merchandise items"
+            icon="🛍️"
+            href="/dashboard/merchandise"
+          />
         </div>
       </div>
     </>
@@ -96,9 +119,9 @@ export default async function InventoryPage({
   // Next.js 15 requires awaiting searchParams before use
   await searchParams;
   
-  // Always show bakery-focused content
-  const pageTitle = "Bakery Items";
-  const pageDescription = "Manage your bakery inventory";
+  // Show content for all categories
+  const pageTitle = "Inventory Management";
+  const pageDescription = "Manage inventory across all departments";
 
   return (
     <div className="container py-8 space-y-8">
@@ -116,11 +139,13 @@ export default async function InventoryPage({
       </Suspense>
       
       <Tabs defaultValue="bakery" className="mt-8">
-        <TabsList className="grid w-full grid-cols-1">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="bakery">Bakery</TabsTrigger>
+          <TabsTrigger value="bar">Bar</TabsTrigger>
+          <TabsTrigger value="kitchen">Kitchen</TabsTrigger>
+          <TabsTrigger value="merchandise">Merchandise</TabsTrigger>
         </TabsList>
         
-        {/* Only bakery tab content */}
         <TabsContent value="bakery">
           <Card>
             <CardHeader>
@@ -153,6 +178,105 @@ export default async function InventoryPage({
             </CardContent>
           </Card>
         </TabsContent>
+        
+        <TabsContent value="bar">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle>Bar Items</CardTitle>
+                  <CardDescription>
+                    Manage beer, wine, spirits, and other bar items
+                  </CardDescription>
+                </div>
+                <div className="w-full md:w-auto">
+                  <Suspense fallback={<Skeleton className="h-10 w-[250px]" />}>
+                    <SearchInventory subcategory="beer" />
+                  </Suspense>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Suspense 
+                fallback={
+                  <div className="space-y-2">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                }
+              >
+                <BarInventory />
+              </Suspense>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="kitchen">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle>Kitchen Items</CardTitle>
+                  <CardDescription>
+                    Manage kitchen supplies, utensils, and ingredients
+                  </CardDescription>
+                </div>
+                <div className="w-full md:w-auto">
+                  <Suspense fallback={<Skeleton className="h-10 w-[250px]" />}>
+                    <SearchInventory subcategory="other_kitchen" />
+                  </Suspense>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Suspense 
+                fallback={
+                  <div className="space-y-2">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                }
+              >
+                <KitchenInventory />
+              </Suspense>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="merchandise">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle>Merchandise Items</CardTitle>
+                  <CardDescription>
+                    Manage branded merchandise, retail items, and equipment
+                  </CardDescription>
+                </div>
+                <div className="w-full md:w-auto">
+                  <Suspense fallback={<Skeleton className="h-10 w-[250px]" />}>
+                    <SearchInventory subcategory="merchandise" />
+                  </Suspense>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Suspense 
+                fallback={
+                  <div className="space-y-2">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                }
+              >
+                <MerchandiseInventory />
+              </Suspense>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -162,6 +286,42 @@ export default async function InventoryPage({
 async function SubcategoryInventory({ subcategory }: { subcategory: string }) {
   const { getInventoryItemsBySubcategory } = await import("@/lib/actions/inventory");
   const items = await getInventoryItemsBySubcategory(subcategory);
+  
+  return (
+    <div>
+      <InventoryTable items={items} />
+    </div>
+  );
+}
+
+// Bar inventory component - handles multiple bar-related subcategories
+async function BarInventory() {
+  const { getInventoryItemsBySection } = await import("@/lib/actions/inventory");
+  const items = await getInventoryItemsBySection('bar');
+  
+  return (
+    <div>
+      <InventoryTable items={items} />
+    </div>
+  );
+}
+
+// Merchandise inventory component
+async function MerchandiseInventory() {
+  const { getInventoryItemsBySection } = await import("@/lib/actions/inventory");
+  const items = await getInventoryItemsBySection('merchandise');
+  
+  return (
+    <div>
+      <InventoryTable items={items} />
+    </div>
+  );
+}
+
+// Kitchen inventory component
+async function KitchenInventory() {
+  const { getInventoryItemsBySection } = await import("@/lib/actions/inventory");
+  const items = await getInventoryItemsBySection('kitchen');
   
   return (
     <div>
