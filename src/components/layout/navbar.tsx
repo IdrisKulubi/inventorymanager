@@ -29,7 +29,7 @@ export function Navbar() {
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2">
             <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-amber-700 via-amber-500 to-amber-800 bg-clip-text text-transparent dark:from-amber-200 dark:via-amber-400 dark:to-amber-300">
-              Bakery Inventory
+              Inventory Manager
             </h1>
           </Link>
           
