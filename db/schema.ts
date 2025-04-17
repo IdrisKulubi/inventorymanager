@@ -13,7 +13,13 @@ export const inventorySubcategoryEnum = pgEnum('inventory_subcategory', [
   'chocolates',
   'bakery',
   'barista',
+  'muffin',
+  'croissant',
+  'cake',
+  'chocolate_bowl',
+  'brownie',
   'other_chocolate',
+  
   
   // Beer Room subcategories
   'beer',

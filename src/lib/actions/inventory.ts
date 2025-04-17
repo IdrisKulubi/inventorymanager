@@ -324,7 +324,6 @@ export async function getInventoryItemsBySubcategory(subcategory?: string, searc
   try {
     const query = db.select().from(inventoryItems);
     if (subcategory) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       query.where(eq(inventoryItems.subcategory, subcategory as any)); // Using any as temporary fix until proper enum type is defined
     }
     

@@ -159,10 +159,10 @@ export default async function HomePage() {
               </Button>
               
               <Button asChild variant="secondary" className="w-full text-left justify-start h-auto py-3 px-4">
-                <Link href="/inventory/reports">
+                <Link href="/reports">
                   <span className="flex flex-col items-start">
-                    <span className="text-base font-medium">View Reports</span>
-                    <span className="text-xs text-gray-500">See inventory analytics and reports</span>
+                    <span className="text-base font-medium">Reports</span>
+                    <span className="text-xs text-gray-500">View stock and sales reports</span>
                   </span>
                 </Link>
               </Button>

@@ -15,6 +15,13 @@
       "when": 1742848635260,
       "tag": "0001_broken_sugar_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1744885905098,
+      "tag": "0002_large_longshot",
+      "breakpoints": true
     }
   ]
 }
