@@ -25,7 +25,8 @@ export const INVENTORY_SUBCATEGORIES: Record<string, readonly string[]> = {
         'wine',
         'spirits',
         'water',
-        'other_alcohol'
+        'soft_drinks'
+        ,        'other_alcohol'
     ],
     fixed_assets: [
         'chocolate_room_assets',
@@ -66,6 +67,7 @@ export const SUBCATEGORY_DISPLAY_NAMES: Record<string, string> = {
     wine: 'Wine',
     spirits: 'Spirits',
     water: 'Water',
+    soft_drinks: 'Soft Drinks',
     other_alcohol: 'Other Alcohol',
     
     // Fixed Assets
