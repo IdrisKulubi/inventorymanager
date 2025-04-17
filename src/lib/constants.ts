@@ -12,6 +12,11 @@ export const INVENTORY_SUBCATEGORIES: Record<string, readonly string[]> = {
         'chocolates',
         'bakery',
         'barista',
+        'muffin',
+        'croissant',
+        'cake',
+        'chocolate_bowl',
+        'brownie',
         'other_chocolate'
     ],
     beer_room: [
@@ -19,6 +24,7 @@ export const INVENTORY_SUBCATEGORIES: Record<string, readonly string[]> = {
         'whisky',
         'wine',
         'spirits',
+        'water',
         'other_alcohol'
     ],
     fixed_assets: [
@@ -47,6 +53,11 @@ export const SUBCATEGORY_DISPLAY_NAMES: Record<string, string> = {
     chocolates: 'Chocolates',
     bakery: 'Bakery',
     barista: 'Barista',
+    muffin: 'Muffin',
+    croissant: 'Croissant',
+    cake: 'Cake',
+    chocolate_bowl: 'Chocolate Bowl',
+    brownie: 'Brownie',
     other_chocolate: 'Other',
     
     // Beer Room
@@ -54,6 +65,7 @@ export const SUBCATEGORY_DISPLAY_NAMES: Record<string, string> = {
     whisky: 'Whisky',
     wine: 'Wine',
     spirits: 'Spirits',
+    water: 'Water',
     other_alcohol: 'Other Alcohol',
     
     // Fixed Assets
