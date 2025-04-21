@@ -104,7 +104,7 @@ export default async function ItemPage({ params, searchParams }: ItemPageProps) 
               </p>
             </div>
             
-            <div>
+            {/* <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Stock Value</h3>
               <p className="text-2xl font-bold">
                 Ksh{(item.stockValue ? item.stockValue / 100 : 0).toFixed(2)}
@@ -114,7 +114,7 @@ export default async function ItemPage({ params, searchParams }: ItemPageProps) 
                   Ksh{(item.cost / 100).toFixed(2)} per {item.unit}
                 </p>
               )}
-            </div>
+            </div> */}
             
             <Separator />
             

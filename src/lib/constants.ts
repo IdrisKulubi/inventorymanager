@@ -32,7 +32,8 @@ export const INVENTORY_SUBCATEGORIES: Record<string, readonly string[]> = {
         'chocolate_room_assets',
         'beer_room_assets',
         'kitchen_assets',
-        'general_assets'
+        'general_assets',
+        'merchandise'
     ],
     kitchen: [
         'ingredients',
@@ -75,6 +76,7 @@ export const SUBCATEGORY_DISPLAY_NAMES: Record<string, string> = {
     beer_room_assets: 'Beer Room Assets',
     kitchen_assets: 'Kitchen Assets',
     general_assets: 'General Assets',
+    merchandise: 'Merchandise',
     
     // Kitchen
     ingredients: 'Ingredients',

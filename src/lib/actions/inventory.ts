@@ -46,8 +46,9 @@ export async function deleteInventoryItem(id: number) {
     await db.delete(inventoryItems)
       .where(eq(inventoryItems.id, id));
     
-    // Revalidate the path to update the UI
-    revalidatePath("/");
+    // Revalidate specific paths instead of the entire app
+    revalidatePath("/inventory");
+    revalidatePath("/dashboard");
     
     return { success: true };
   } catch (error) {
@@ -157,7 +158,7 @@ export async function getInventoryStats() {
       ['beer', 'wine', 'spirits', 'other_alcohol'].includes(item.subcategory)
     ).length;
     const merchandiseItems = items.filter(item => 
-      ['chocolate_room_assets', 'beer_room_assets', 'kitchen_assets'].includes(item.subcategory)
+      ['chocolate_room_assets', 'beer_room_assets', 'kitchen_assets', 'merchandise', 'general_assets'].includes(item.subcategory)
     ).length;
 
     // Count items by expiry status
@@ -262,7 +263,9 @@ export async function getSectionStats(section: string) {
         or(
           eq(inventoryItems.subcategory, 'chocolate_room_assets'),
           eq(inventoryItems.subcategory, 'beer_room_assets'),
-          eq(inventoryItems.subcategory, 'kitchen_assets')
+          eq(inventoryItems.subcategory, 'kitchen_assets'),
+          eq(inventoryItems.subcategory, 'merchandise' as any),
+          eq(inventoryItems.subcategory, 'general_assets')
         )
       );
     } else if (section === 'kitchen') {
@@ -370,7 +373,9 @@ export async function getInventoryItemsBySection(section: string, search?: strin
         or(
           eq(inventoryItems.subcategory, 'chocolate_room_assets'),
           eq(inventoryItems.subcategory, 'beer_room_assets'),
-          eq(inventoryItems.subcategory, 'kitchen_assets')
+          eq(inventoryItems.subcategory, 'kitchen_assets'),
+          eq(inventoryItems.subcategory, 'merchandise' as any),
+          eq(inventoryItems.subcategory, 'general_assets')
         )
       );
     } else if (section === 'kitchen') {

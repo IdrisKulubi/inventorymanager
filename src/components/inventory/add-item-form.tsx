@@ -711,7 +711,7 @@ export function AddInventoryForm({ onItemAdded }: AddInventoryFormProps) {
                     name="sellingPrice"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Selling Price</FormLabel>
+                        <FormLabel>Selling Price (Optional for Merchandise)</FormLabel>
                         <FormControl>
                           <Input 
                             type="number" 
